@@ -34,6 +34,33 @@ Usage:
            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/et_botcc.ipset
 ```
 
+## Examples
+
+(Optional) Save current ipsets when stopping ipset service on RHEL/CentOS.
+
+- Edit `/etc/sysconfig/ipset-config`
+
+```
+IPSET_SAVE_ON_STOP="yes"
+```
+
+Create the `WHITELIST_JP` list.
+
+```
+ipset-fast-update -n WHITELIST_JP -u https://ipv4.fetus.jp/jp.txt
+```
+
+Add rules to iptables configuration
+
+```
+# SSH
+-A INPUT -p tcp -m tcp --dport 22 -m set --match-set WHITELIST_JP src -j ACCEPT
+
+# HTTP/HTTPS
+-A INPUT -p tcp -m tcp --dport 80 -m set --match-set WHITELIST_JP src -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 443 -m set --match-set WHITELIST_JP src -j ACCEPT
+```
+
 ## License
 
 MIT
