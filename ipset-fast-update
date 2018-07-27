@@ -1,0 +1,215 @@
+#!/bin/bash
+#
+# fast update ipset list
+#
+# ipset list -t
+# ipset list
+#
+# Recommend:
+#   - RHEL/CentOS: vi /etc/sysconfig/ipset-config
+#     IPSET_SAVE_ON_STOP="yes"
+#
+# Copyright (C) 2018 Jun Futagawa (jfut)
+#
+# This software is released under the MIT License.
+# http://opensource.org/licenses/mit-license.php
+
+set -e
+set -u
+
+SCRIPT_DIR="$(cd "$(dirname "${0}")" && echo "${PWD}")"
+STATE_DIR="${SCRIPT_DIR}/.ipset-fast-update"
+
+ALERT_THRESHOLD_RATIO="35"
+IS_VERBOSE="0"
+IS_FORCE="0"
+
+# If you change this, you need destroy current list and create new one.
+IPSET_MAXELEM="4294967295"
+
+VERSION=1.0
+
+# Usage
+usage() {
+    cat << _EOF_
+ipset-fast-update ${VERSION}
+
+Usage:
+    ipset-fast-update -n SET_NAME -u URL [-u URL]... [-f] [-r 35] [-v] [-h]
+
+    Options:
+        -f fource update
+        -n ipset list name
+        -u ipset source file url
+        -r alert threshold ratio (default: 35)
+        -v verbose mode
+        -h help
+
+    STATE_DIR: ${STATE_DIR}
+
+    If the "iprange" command exists, then it is used for optimization.
+    https://github.com/firehol/iprange
+
+    EXAMPLES
+        ipset-fast-update -n WHITELIST_JP -u https://ipv4.fetus.jp/jp.txt
+
+        ipset-fast-update -n BLACKLIST \\
+           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset \\
+           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level2.netset \\
+           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level3.netset \\
+           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level4.netset \\
+           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/et_botcc.ipset
+_EOF_
+}
+
+download_ipset() {
+    local LIST_FILE="${1}"
+    shift
+    local URL_LIST="${@}"
+
+    for URL in ${URL_LIST}; do
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ${URL}"
+        curl -s --retry 3 "${URL}" >> "${LIST_FILE}"
+    done
+}
+
+diff_ratio() {
+    local LIST_CURRENT_FILE="${1}"
+    local LIST_FILE="${2}"
+
+    set +e
+    cat "${LIST_CURRENT_FILE}" | egrep -v "^#|^$" > "${LIST_CURRENT_FILE}.tmp"
+    cat "${LIST_FILE}" | egrep -v "^#|^$" > "${LIST_FILE}.tmp"
+    set -e
+
+    CURRENT_COUNT=$(cat "${LIST_CURRENT_FILE}.tmp" | wc -l)
+    DIFF_COUNT=$(diff "${LIST_CURRENT_FILE}.tmp" "${LIST_FILE}.tmp" | egrep "<|>" | wc -l)
+
+    if [[ "${CURRENT_COUNT}" -eq 0 ]]; then
+        echo "- Changes: new (${DIFF_COUNT} / ${CURRENT_COUNT})"
+        IS_FORCE="1"
+    else
+        DIFF_RATIO=$(echo "scale=5; ${DIFF_COUNT} / ${CURRENT_COUNT} * 100" | bc)
+        if [[ "${DIFF_RATIO}" != "0" ]] || [[ "${IS_VERBOSE}" -eq 1 ]]; then
+            echo "- Changes: $(printf "%.2f" ${DIFF_RATIO}) % (${DIFF_COUNT} / ${CURRENT_COUNT})"
+        fi
+    fi
+
+    rm -f "${LIST_CURRENT_FILE}.tmp" "${LIST_FILE}.tmp"
+}
+
+optimize_ipset() {
+    local LIST_FILE="${1}"
+    local LIST_FILE_OPTIMIZED="${2}"
+
+    if which iprange >/dev/null 2>&1; then
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- optimize: iprange"
+        iprange --optimize "${LIST_FILE}" > "${LIST_FILE_OPTIMIZED}"
+    else
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- optimize: sort, uniq (NOTICE: iprange is better. https://github.com/firehol/iprange)"
+        cat "${LIST_FILE}" | sort | uniq > "${LIST_FILE_OPTIMIZED}"
+    fi
+}
+
+update_ipset() {
+    local SET_NAME="${1}"
+    local LIST_FILE="${2}"
+
+    SET_NAME_TMP="${SET_NAME}_TMP"
+
+    # Create a whitelist set
+    ipset create -exist "${SET_NAME}" hash:net maxelem ${IPSET_MAXELEM}
+    ipset create -exist "${SET_NAME_TMP}" hash:net maxelem ${IPSET_MAXELEM}
+    ipset flush "${SET_NAME_TMP}"
+
+    cat "${LIST_FILE}" | egrep -v "^#|^$" | sed "s/.*/add ${SET_NAME_TMP} &/g" | ipset restore
+
+    ipset swap "${SET_NAME_TMP}" "${SET_NAME}"
+    ipset destroy "${SET_NAME_TMP}"
+}
+
+# Main
+main() {
+    [ ${#} -lt 1 ] && ( usage; exit 1 );
+
+    SET_NAME=""
+    declare -a URL_LIST
+    while getopts fhn:u:r:v OPT; do
+        case "${OPT}" in
+            "f" )
+                IS_FORCE="1" ;;
+            "n" )
+                SET_NAME="${OPTARG}" ;;
+            "u" )
+                URL_LIST+=("${OPTARG}") ;;
+            "r" )
+                ALERT_THRESHOLD_RATIO="${OPTARG}" ;;
+            "v" )
+                IS_VERBOSE="1" ;;
+            "h" )
+                usage
+                exit 0 ;;
+            * )
+                usage
+                exit 1 ;;
+        esac
+    done
+    shift $((OPTIND - 1))
+
+    if [[ -z "${SET_NAME}" ]] || [[ -z "${URL_LIST}" ]]; then
+         usage; exit 1
+    fi
+
+    # Create state directory
+    if [[ ! -d "${STATE_DIR}" ]]; then
+        mkdir -p "${STATE_DIR}"
+    fi
+
+    # Download ip list
+    LIST_FILE="${STATE_DIR}/${SET_NAME}"
+    echo > "${LIST_FILE}"
+
+    [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# download_ipset ${LIST_FILE} (URLs: ${#URL_LIST[@]})"
+    download_ipset "${LIST_FILE}" "${URL_LIST[@]}"
+
+    if [[ ! -f "${LIST_FILE}" ]]; then
+        echo "Download failed: ${URL}"
+        exit 1
+    fi
+
+    # Calculate diff ratio
+    LIST_CURRENT_FILE="${STATE_DIR}/${SET_NAME}.current"
+    if [[ ! -f "${LIST_CURRENT_FILE}" ]]; then
+        touch "${LIST_CURRENT_FILE}"
+    fi
+    DIFF_RATIO="0"
+    [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# diff_ratio ${LIST_CURRENT_FILE} ${LIST_FILE}"
+    diff_ratio "${LIST_CURRENT_FILE}" "${LIST_FILE}"
+
+    if [[ "${IS_FORCE}" -ne 1 ]]; then
+        IS_ALERT=$(echo "${ALERT_THRESHOLD_RATIO} <= ${DIFF_RATIO}" | bc)
+        if [[ ${IS_ALERT} -eq 1 ]]; then
+            echo "ERROR: alert threshold over (${ALERT_THRESHOLD_RATIO})"
+            echo "    Force update: $0 -f ..."
+            exit 1
+        fi
+    fi
+
+    # Update ipset list
+    if [[ "${IS_FORCE}" -eq 1 || "${DIFF_RATIO}" != "0" ]]; then
+        # Optimize ip list
+        LIST_FILE_OPTIMIZED="${LIST_FILE}.optimized"
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# optimize_ipset ${LIST_FILE}"
+        optimize_ipset "${LIST_FILE}" "${LIST_FILE_OPTIMIZED}"
+
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# update_ipset ${SET_NAME} ${LIST_FILE}"
+        update_ipset "${SET_NAME}" "${LIST_FILE_OPTIMIZED}"
+
+        rm -f "${LIST_FILE_OPTIMIZED}"
+    fi
+
+    # Save current list file
+    yes | mv "${LIST_FILE}" "${LIST_CURRENT_FILE}"
+}
+
+[[ ${#BASH_SOURCE[@]} = 1 ]] && main "$@"
