@@ -50,7 +50,9 @@ Create the `WHITELIST_JP` list.
 ipset-fast-update -n WHITELIST_JP -u https://ipv4.fetus.jp/jp.txt
 ```
 
-Add rules to iptables configuration
+Add rules to iptables configuration.
+
+- `iptables` command or /etc/sysconfig/iptables on RHEL/CentOS
 
 ```
 # SSH
@@ -59,6 +61,15 @@ Add rules to iptables configuration
 # HTTP/HTTPS
 -A INPUT -p tcp -m tcp --dport 80 -m set --match-set WHITELIST_JP src -j ACCEPT
 -A INPUT -p tcp -m tcp --dport 443 -m set --match-set WHITELIST_JP src -j ACCEPT
+```
+
+Add the cron job to the root crontab.
+
+- `crontab -e`
+
+```
+# daily
+01 23 * * * /path/to/ipset-fast-update -n WHITELIST_JP -u https://ipv4.fetus.jp/jp.txt
 ```
 
 ## License
