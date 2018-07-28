@@ -203,9 +203,13 @@ main() {
 
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# update_ipset ${SET_NAME} ${LIST_FILE}"
         update_ipset "${SET_NAME}" "${LIST_FILE_OPTIMIZED}"
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# Updated: ${SET_NAME}"
 
         rm -f "${LIST_FILE_OPTIMIZED}"
+    else
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# No need update: ${SET_NAME}"
     fi
+    [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# Check set: ipset list -t ${SET_NAME}, ipset list ${SET_NAME}"
 
     # Save current list file
     yes | mv "${LIST_FILE}" "${LIST_CURRENT_FILE}"
