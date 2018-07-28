@@ -1,9 +1,6 @@
 #!/bin/bash
 #
-# fast update ipset list
-#
-# ipset list -t
-# ipset list
+# Fast update of IP set for ipset
 #
 # Recommend:
 #   - RHEL/CentOS: vi /etc/sysconfig/ipset-config
@@ -21,7 +18,7 @@ ALERT_THRESHOLD_RATIO="35"
 IS_VERBOSE="0"
 IS_FORCE="0"
 
-# If you change this, you need destroy current list and create new one.
+# If you change this, you need destroy current set and create new one.
 IPSET_MAXELEM="4294967295"
 
 VERSION="1.0"
@@ -38,8 +35,8 @@ Usage:
     Options:
         -f fource update
         -d state directory (default: /var/lib/ipset-fast-update)
-        -n ipset list name
-        -u ipset source file url
+        -n IP set name of ipset
+        -u IP set url
         -r alert threshold ratio (default: 35)
         -v verbose mode
         -h help
@@ -164,7 +161,7 @@ main() {
         mkdir -p "${STATE_DIR}"
     fi
 
-    # Download ip list
+    # Download IP set
     LIST_FILE="${STATE_DIR}/${SET_NAME}"
     echo > "${LIST_FILE}"
 
@@ -194,9 +191,9 @@ main() {
         fi
     fi
 
-    # Update ipset list
+    # Update IP set
     if [[ "${IS_FORCE}" -eq 1 || "${DIFF_RATIO}" != "0" ]]; then
-        # Optimize ip list
+        # Optimize IP set
         LIST_FILE_OPTIMIZED="${LIST_FILE}.optimized"
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# optimize_ipset ${LIST_FILE}"
         optimize_ipset "${LIST_FILE}" "${LIST_FILE_OPTIMIZED}"

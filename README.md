@@ -1,6 +1,6 @@
 # ipset-fast-update
 
-fast update ipset list.
+Fast update of IP set for ipset.
 
 ## Usage
 
@@ -12,13 +12,12 @@ Usage:
 
     Options:
         -f fource update
-        -n ipset list name
-        -u ipset source file url
+        -d state directory (default: /var/lib/ipset-fast-update)
+        -n IP set name of ipset
+        -u IP set url
         -r alert threshold ratio (default: 35)
         -v verbose mode
         -h help
-
-    STATE_DIR: /path/to/.ipset-fast-update
 
     If the "iprange" command exists, then it is used for optimization.
     https://github.com/firehol/iprange
@@ -44,7 +43,7 @@ Usage:
 IPSET_SAVE_ON_STOP="yes"
 ```
 
-Create the `WHITELIST_JP` list.
+Create the `WHITELIST_JP` set.
 
 ```
 ipset-fast-update -n WHITELIST_JP -u https://ipv4.fetus.jp/jp.txt
