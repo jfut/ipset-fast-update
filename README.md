@@ -43,6 +43,12 @@ Usage:
 IPSET_SAVE_ON_STOP="yes"
 ```
 
+Save them manually on RHEL/CentOS 7.
+
+```
+/usr/libexec/ipset/ipset.start-stop save
+```
+
 Create the `WHITELIST_JP` set.
 
 ```
