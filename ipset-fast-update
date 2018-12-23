@@ -112,13 +112,18 @@ update_ipset() {
     SET_NAME_TMP="${SET_NAME}_TMP"
 
     # Create a whitelist set
+    [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ipset create -exist ${SET_NAME} hash:net maxelem ${IPSET_MAXELEM}"
     ipset create -exist "${SET_NAME}" hash:net maxelem ${IPSET_MAXELEM}
+    [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ipset create -exist ${SET_NAME_TMP} hash:net maxelem ${IPSET_MAXELEM}"
     ipset create -exist "${SET_NAME_TMP}" hash:net maxelem ${IPSET_MAXELEM}
+    [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ipset flush ${SET_NAME_TMP}"
     ipset flush "${SET_NAME_TMP}"
 
     cat "${LIST_FILE}" | egrep -v "^#|^$" | sed "s/.*/add ${SET_NAME_TMP} &/g" | ipset restore
 
+    [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ipset swap ${SET_NAME_TMP} ${SET_NAME}"
     ipset swap "${SET_NAME_TMP}" "${SET_NAME}"
+    [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ipset destroy ${SET_NAME_TMP}"
     ipset destroy "${SET_NAME_TMP}"
 }
 
