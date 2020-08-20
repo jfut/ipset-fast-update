@@ -45,9 +45,9 @@ Usage:
     https://github.com/firehol/iprange
 
     EXAMPLES
-        ipset-fast-update -n WHITELIST_JP -u https://ipv4.fetus.jp/jp.txt
+        ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 
-        ipset-fast-update -n BLACKLIST \\
+        ipset-fast-update -n DENY_LIST \\
            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset \\
            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level2.netset \\
            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level3.netset \\
@@ -111,7 +111,7 @@ update_ipset() {
 
     SET_NAME_TMP="${SET_NAME}_TMP"
 
-    # Create a whitelist set
+    # Create an ipset
     [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ipset create -exist ${SET_NAME} hash:net maxelem ${IPSET_MAXELEM}"
     ipset create -exist "${SET_NAME}" hash:net maxelem ${IPSET_MAXELEM}
     [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ipset create -exist ${SET_NAME_TMP} hash:net maxelem ${IPSET_MAXELEM}"

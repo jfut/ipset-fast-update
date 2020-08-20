@@ -23,9 +23,9 @@ Usage:
     https://github.com/firehol/iprange
 
     EXAMPLES
-        ipset-fast-update -n WHITELIST_JP -u https://ipv4.fetus.jp/jp.txt
+        ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 
-        ipset-fast-update -n BLACKLIST \
+        ipset-fast-update -n DENY_LIST \
            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset \
            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level2.netset \
            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level3.netset \
@@ -49,10 +49,10 @@ Save them manually on RHEL/CentOS 7.
 /usr/libexec/ipset/ipset.start-stop save
 ```
 
-Create the `WHITELIST_JP` set.
+Create the `ALLOW_LIST_JP` set.
 
 ```
-ipset-fast-update -n WHITELIST_JP -u https://ipv4.fetus.jp/jp.txt
+ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 ```
 
 Add rules to iptables configuration.
@@ -61,11 +61,11 @@ Add rules to iptables configuration.
 
 ```
 # SSH
--A INPUT -p tcp -m tcp --dport 22 -m set --match-set WHITELIST_JP src -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 22 -m set --match-set ALLOW_LIST_JP src -j ACCEPT
 
 # HTTP/HTTPS
--A INPUT -p tcp -m tcp --dport 80 -m set --match-set WHITELIST_JP src -j ACCEPT
--A INPUT -p tcp -m tcp --dport 443 -m set --match-set WHITELIST_JP src -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 80 -m set --match-set ALLOW_LIST_JP src -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 443 -m set --match-set ALLOW_LIST_JP src -j ACCEPT
 ```
 
 Add the cron job to the root crontab.
@@ -74,7 +74,7 @@ Add the cron job to the root crontab.
 
 ```
 # daily
-01 23 * * * /path/to/ipset-fast-update -n WHITELIST_JP -u https://ipv4.fetus.jp/jp.txt
+01 23 * * * /path/to/ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 ```
 
 ## License
