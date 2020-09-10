@@ -5,7 +5,7 @@ Fast update of IP set for ipset.
 ## Usage
 
 ```
-ipset-fast-update 1.0
+ipset-fast-update 1.1
 
 Usage:
     ipset-fast-update -n SET_NAME -u URL [-u URL]... [-f] [-r 35] [-v] [-h]
