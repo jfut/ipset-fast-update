@@ -43,7 +43,23 @@ Usage:
 
 ## Examples
 
-(Optional) Save current ipsets when stopping ipset service on RHEL/CentOS.
+(Optional) Save current ipsets when stopping ipset service on RHEL/CentOS 7 and 8.
+
+- Install `ipset-service`
+
+```
+# RHEL/CentOS 7
+yum install ipset-service
+
+# RHEL/CentOS 8
+dnf install ipset-service
+```
+
+Enable services:
+
+```
+systemctl enable ipset.service
+```
 
 - Edit `/etc/sysconfig/ipset-config`
 
@@ -51,7 +67,7 @@ Usage:
 IPSET_SAVE_ON_STOP="yes"
 ```
 
-Save them manually on RHEL/CentOS 7.
+Save them manually.
 
 ```
 /usr/libexec/ipset/ipset.start-stop save
@@ -74,6 +90,16 @@ Add rules to iptables configuration.
 # HTTP/HTTPS
 -A INPUT -p tcp -m tcp --dport 80 -m set --match-set ALLOW_LIST_JP src -j ACCEPT
 -A INPUT -p tcp -m tcp --dport 443 -m set --match-set ALLOW_LIST_JP src -j ACCEPT
+
+# Drop Attacks for inbound access
+-A INPUT -m set --match-set DENY_LIST_ATTACK src -j DROP
+-A INPUT -m set --match-set DENY_LIST_BOT_CC src -j DROP
+-A INPUT -m set --match-set DENY_LIST_ANONYMOUS_TOR src -j DROP
+
+# Reject Attacks for outbound access
+-A OUTPUT -m set --match-set DENY_LIST_ATTACK dst -j REJECT
+-A OUTPUT -m set --match-set DENY_LIST_BOT_CC dst -j REJECT
+-A OUTPUT -m set --match-set DENY_LIST_ANONYMOUS_TOR dst -j REJECT
 ```
 
 Add the cron job to the root crontab.
