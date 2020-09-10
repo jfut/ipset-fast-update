@@ -101,14 +101,16 @@ Add rules to iptables configuration.
 -A OUTPUT -m set --match-set DENY_LIST_BOT_CC dst -j REJECT
 -A OUTPUT -m set --match-set DENY_LIST_ANONYMOUS_TOR dst -j REJECT
 ```
-
 Add the cron job to the root crontab.
 
 - `crontab -e`
 
+If you are using multiple lists, it is better to create an update script and register it with cron.
+
 ```
 # daily
-01 23 * * * /path/to/ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
+# Example of ALLOW_LIST_JP only
+42 01 * * * /path/to/ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 ```
 
 ## License
