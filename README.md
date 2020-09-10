@@ -23,14 +23,22 @@ Usage:
     https://github.com/firehol/iprange
 
     EXAMPLES
+        # Japanese IPs
         ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 
-        ipset-fast-update -n DENY_LIST \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level2.netset \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level3.netset \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level4.netset \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/et_botcc.ipset
+        # An ipset made from blocklists that track attacks, during about the last 48 hours. (includes: blocklist_de dshield_1d greensnow)
+        ipset-fast-update -n DENY_LIST_ATTACK \
+            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level2.netset
+
+        # EmergingThreats.net Command and Control IPs
+        # IBM X-Force Exchange Botnet Command and Control Servers
+        ipset-fast-update -n DENY_LIST_BOT_CC \
+            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/et_botcc.ipset \
+            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/xforce_bccs.ipset
+
+        # An ipset that includes all the anonymizing IPs of the world. (includes: anonymous bm_tor dm_tor firehol_proxies tor_exits)
+        ipset-fast-update -n DENY_LIST_ANONYMOUS_TOR \
+            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_anonymous.netset
 ```
 
 ## Examples
