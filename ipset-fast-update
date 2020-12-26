@@ -14,7 +14,7 @@
 set -e
 set -u
 
-ALERT_THRESHOLD_RATIO="35"
+ALERT_THRESHOLD_RATIO="80"
 IS_TEMPORARY="0"
 IS_VERBOSE="0"
 IS_FORCE="0"
@@ -42,7 +42,7 @@ Usage:
         -u IP set url
         -d state directory (default: /var/lib/ipset-fast-update)
         -f fource update
-        -r alert threshold ratio (default: 35)
+        -r alert threshold ratio (default: 80)
         -t temporary mode
            This option does not "/usr/libexec/ipset/ipset.start-stop save" for persistent settings.
         -v verbose mode
