@@ -6,7 +6,7 @@
 #   - RHEL/CentOS: vi /etc/sysconfig/ipset-config
 #     IPSET_SAVE_ON_STOP="yes"
 #
-# Copyright (C) 2018 Jun Futagawa (jfut)
+# Copyright (C) 2018-2020 Jun Futagawa (jfut)
 #
 # This software is released under the MIT License.
 # http://opensource.org/licenses/mit-license.php
