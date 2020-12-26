@@ -21,7 +21,7 @@ IS_FORCE="0"
 # If you change this, you need destroy current set and create new one.
 IPSET_MAXELEM="4294967295"
 
-VERSION="1.1"
+VERSION="1.2"
 STATE_DIR="/var/lib/ipset-fast-update"
 
 # Usage
@@ -30,13 +30,13 @@ usage() {
 ipset-fast-update ${VERSION}
 
 Usage:
-    ipset-fast-update -n SET_NAME -u URL [-u URL]... [-f] [-r 35] [-v] [-h]
+    ipset-fast-update -n SET_NAME -u URL [-u URL]... [OPTIONS...]
 
     Options:
-        -f fource update
-        -d state directory (default: /var/lib/ipset-fast-update)
         -n IP set name of ipset
         -u IP set url
+        -d state directory (default: /var/lib/ipset-fast-update)
+        -f fource update
         -r alert threshold ratio (default: 35)
         -v verbose mode
         -h help
@@ -134,16 +134,16 @@ main() {
 
     SET_NAME=""
     declare -a URL_LIST
-    while getopts d:fhn:u:r:v OPT; do
+    while getopts n:u:d:fr:vh OPT; do
         case "${OPT}" in
-            "f" )
-                IS_FORCE="1" ;;
-            "d" )
-                STATE_DIR="${OPTARG}" ;;
             "n" )
                 SET_NAME="${OPTARG}" ;;
             "u" )
                 URL_LIST+=("${OPTARG}") ;;
+            "d" )
+                STATE_DIR="${OPTARG}" ;;
+            "f" )
+                IS_FORCE="1" ;;
             "r" )
                 ALERT_THRESHOLD_RATIO="${OPTARG}" ;;
             "v" )
