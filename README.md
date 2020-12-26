@@ -74,12 +74,6 @@ systemctl enable ipset.service
 IPSET_SAVE_ON_STOP="yes"
 ```
 
-Save them manually.
-
-```
-/usr/libexec/ipset/ipset.start-stop save
-```
-
 Create the `ALLOW_LIST_JP` set.
 
 ```

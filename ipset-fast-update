@@ -15,6 +15,7 @@ set -e
 set -u
 
 ALERT_THRESHOLD_RATIO="35"
+IS_TEMPORARY="0"
 IS_VERBOSE="0"
 IS_FORCE="0"
 
@@ -22,7 +23,11 @@ IS_FORCE="0"
 IPSET_MAXELEM="4294967295"
 
 VERSION="1.2"
+IPSET_CONFIG="/etc/sysconfig/ipset-config"
 STATE_DIR="/var/lib/ipset-fast-update"
+
+# Source ipset configuration
+[[ -f "${IPSET_CONFIG}" ]] && . "${IPSET_CONFIG}"
 
 # Usage
 usage() {
@@ -38,6 +43,8 @@ Usage:
         -d state directory (default: /var/lib/ipset-fast-update)
         -f fource update
         -r alert threshold ratio (default: 35)
+        -t temporary mode
+           This option does not "/usr/libexec/ipset/ipset.start-stop save" for persistent settings.
         -v verbose mode
         -h help
 
@@ -134,7 +141,7 @@ main() {
 
     SET_NAME=""
     declare -a URL_LIST
-    while getopts n:u:d:fr:vh OPT; do
+    while getopts n:u:d:fr:tvh OPT; do
         case "${OPT}" in
             "n" )
                 SET_NAME="${OPTARG}" ;;
@@ -146,6 +153,8 @@ main() {
                 IS_FORCE="1" ;;
             "r" )
                 ALERT_THRESHOLD_RATIO="${OPTARG}" ;;
+            "t" )
+                IS_TEMPORARY="1" ;;
             "v" )
                 IS_VERBOSE="1" ;;
             "h" )
@@ -209,6 +218,19 @@ main() {
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# Updated: ${SET_NAME}"
 
         rm -f "${LIST_FILE_OPTIMIZED}"
+
+        # Save ipset configuration
+        if [[ "${IS_TEMPORARY}" -eq 0 ]]; then
+            echo "# Save ipset configuration by using /usr/libexec/ipset/ipset.start-stop save"
+            if [[ "${IPSET_SAVE_ON_STOP}" != "yes" ]]; then
+		echo "--------------------------------------------------------------------------------------"
+                echo "[WARNING]: IPSET_SAVE_ON_STOP in ${IPSET_CONFIG} is not set to yes."
+		echo "It is recommended that you set it to 'yes' for the setting to take effect permanently."
+		echo "If you do not want to save the configuration automatically, use the -t option."
+		echo "--------------------------------------------------------------------------------------"
+            fi
+            /usr/libexec/ipset/ipset.start-stop save
+        fi
     else
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# No need update: ${SET_NAME}"
     fi
@@ -219,3 +241,4 @@ main() {
 }
 
 [[ ${#BASH_SOURCE[@]} = 1 ]] && main "$@"
+
