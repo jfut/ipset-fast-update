@@ -5,17 +5,19 @@ Fast update of IP set for ipset.
 ## Usage
 
 ```
-ipset-fast-update 1.1
+ipset-fast-update 1.2
 
 Usage:
-    ipset-fast-update -n SET_NAME -u URL [-u URL]... [-f] [-r 35] [-v] [-h]
+    ipset-fast-update -n SET_NAME -u URL [-u URL]... [OPTIONS...]
 
     Options:
-        -f fource update
-        -d state directory (default: /var/lib/ipset-fast-update)
         -n IP set name of ipset
         -u IP set url
-        -r alert threshold ratio (default: 35)
+        -d state directory (default: /var/lib/ipset-fast-update)
+        -f fource update
+        -r alert threshold ratio (default: 80)
+        -t temporary mode
+           This option does not "/usr/libexec/ipset/ipset.start-stop save" for persistent settings.
         -v verbose mode
         -h help
 
