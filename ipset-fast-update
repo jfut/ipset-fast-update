@@ -43,6 +43,7 @@ Usage:
         -d state directory (default: /var/lib/ipset-fast-update)
         -f fource update
         -r alert threshold ratio (default: 80)
+           If the threshold is exceeded, the list will not be updated without the -f option.
         -t temporary mode
            This option does not "/usr/libexec/ipset/ipset.start-stop save" for persistent settings.
         -v verbose mode
