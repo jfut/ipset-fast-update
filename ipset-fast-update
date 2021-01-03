@@ -22,7 +22,7 @@ IS_FORCE="0"
 # If you change this, you need destroy current set and create new one.
 IPSET_MAXELEM="4294967295"
 
-VERSION="1.2"
+VERSION="1.3"
 IPSET_CONFIG="/etc/sysconfig/ipset-config"
 STATE_DIR="/var/lib/ipset-fast-update"
 
@@ -175,6 +175,13 @@ main() {
     # Create state directory
     if [[ ! -d "${STATE_DIR}" ]]; then
         mkdir -p "${STATE_DIR}"
+    fi
+
+    # If the IP set does not exist, set force mode
+    IS_LOADED=$(ipset list -n -t "${SET_NAME}" 2>&1)
+    if [[ $? -ne 0 ]]; then
+        echo "The set '${SET_NAME}' does not exist. Run in force update mode(-f)."
+        IS_FORCE="1"
     fi
 
     # Download IP set
