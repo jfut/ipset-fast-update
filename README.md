@@ -5,7 +5,7 @@ Fast update of IP set for ipset.
 ## Usage
 
 ```
-ipset-fast-update 1.2
+ipset-fast-update 1.3
 
 Usage:
     ipset-fast-update -n SET_NAME -u URL [-u URL]... [OPTIONS...]
@@ -115,6 +115,15 @@ If you are using multiple lists, it is better to create an update script and reg
 # daily
 # Example of ALLOW_LIST_JP only
 42 01 * * * /path/to/ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
+```
+
+## Release tag
+
+e.g.:
+
+```
+git tag -a v1.3 -m "v1.3"
+git push origin refs/tags/v1.3
 ```
 
 ## License
