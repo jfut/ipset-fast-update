@@ -178,11 +178,13 @@ main() {
     fi
 
     # If the IP set does not exist, set force mode
+    set +e
     IS_LOADED=$(ipset list -n -t "${SET_NAME}" 2>&1)
     if [[ $? -ne 0 ]]; then
         echo "The set '${SET_NAME}' does not exist. Run in force update mode(-f)."
         IS_FORCE="1"
     fi
+    set -e
 
     # Download IP set
     LIST_FILE="${STATE_DIR}/${SET_NAME}"
