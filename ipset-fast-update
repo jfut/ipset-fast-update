@@ -22,7 +22,7 @@ IS_FORCE="0"
 # If you change this, you need destroy current set and create new one.
 IPSET_MAXELEM="4294967295"
 
-VERSION="1.3"
+VERSION="1.4"
 IPSET_CONFIG="/etc/sysconfig/ipset-config"
 STATE_DIR="/var/lib/ipset-fast-update"
 
