@@ -35,10 +35,11 @@ usage() {
 ipset-fast-update ${VERSION}
 
 Usage:
-    ipset-fast-update -n SET_NAME -u URL [-u URL]... [OPTIONS...]
+    ipset-fast-update -n SET_NAME [-i PATH]... [-u URL]... [OPTIONS...]
 
     Options:
         -n IP set name of ipset
+        -i IP set file path
         -u IP set url
         -d state directory (default: /var/lib/ipset-fast-update)
         -f fource update
@@ -55,13 +56,34 @@ Usage:
     EXAMPLES
         ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 
+        ipset-fast-update -n ALLOW_LIST_FILE \\
+           -i list1.txt \\
+           -i list2.txt \\
+           -i list3.txt
+
         ipset-fast-update -n DENY_LIST \\
            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset \\
            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level2.netset \\
            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level3.netset \\
            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level4.netset \\
            -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/et_botcc.ipset
+
+        ipset-fast-update -n DENY_MIX_LIST \\
+           -i list1.txt \\
+           -i list2.txt \\
+           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset
 _EOF_
+}
+
+file_ipset() {
+    local LIST_FILE="${1}"
+    shift
+    local FILE_LIST="${@}"
+
+    for FILE in ${FILE_LIST}; do
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ${FILE}"
+        cat  "${FILE}" >> "${LIST_FILE}"
+    done
 }
 
 download_ipset() {
@@ -141,13 +163,22 @@ main() {
     [ ${#} -lt 1 ] && ( usage; exit 1 );
 
     SET_NAME=""
+    declare -a FILE_LIST
     declare -a URL_LIST
-    while getopts n:u:d:fr:tvh OPT; do
+    USE_FILE_LIST=0
+    USE_URL_LIST=0
+    while getopts n:i:u:d:fr:tvh OPT; do
         case "${OPT}" in
             "n" )
                 SET_NAME="${OPTARG}" ;;
+            "i" )
+                FILE_LIST+=("${OPTARG}")
+                USE_FILE_LIST=1
+                ;;
             "u" )
-                URL_LIST+=("${OPTARG}") ;;
+                URL_LIST+=("${OPTARG}")
+                USE_URL_LIST=1
+                ;;
             "d" )
                 STATE_DIR="${OPTARG}" ;;
             "f" )
@@ -168,7 +199,7 @@ main() {
     done
     shift $((OPTIND - 1))
 
-    if [[ -z "${SET_NAME}" ]] || [[ -z "${URL_LIST}" ]]; then
+    if [[ -z "${SET_NAME}" ]] || ( [[ "${USE_FILE_LIST}" -eq 0 ]] && [[ "${USE_URL_LIST}" -eq 0 ]] ); then
          usage; exit 1
     fi
 
@@ -186,16 +217,30 @@ main() {
     fi
     set -e
 
-    # Download IP set
+    # IP list file
     LIST_FILE="${STATE_DIR}/${SET_NAME}"
     echo > "${LIST_FILE}"
 
-    [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# download_ipset ${LIST_FILE} (URLs: ${#URL_LIST[@]})"
-    download_ipset "${LIST_FILE}" "${URL_LIST[@]}"
+    # FILE_LIST: IP set file
+    if [[ "${USE_FILE_LIST}" -eq 1 ]]; then
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# create ${LIST_FILE} (Files: ${#FILE_LIST[@]})"
+        file_ipset "${LIST_FILE}" "${FILE_LIST[@]}"
 
-    if [[ ! -f "${LIST_FILE}" ]]; then
-        echo "Download failed: ${URL}"
-        exit 1
+        if [[ ! -f "${LIST_FILE}" ]]; then
+            echo "File failed: ${FILE}"
+            exit 1
+        fi
+    fi
+
+    # URL_LIST: Download IP set
+    if [[ "${USE_URL_LIST}" -eq 1 ]]; then
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# download_ipset ${LIST_FILE} (URLs: ${#URL_LIST[@]})"
+        download_ipset "${LIST_FILE}" "${URL_LIST[@]}"
+
+        if [[ ! -f "${LIST_FILE}" ]]; then
+            echo "Download failed: ${URL}"
+            exit 1
+        fi
     fi
 
     # Calculate diff ratio
