@@ -1,5 +1,8 @@
 # ipset-fast-update
 
+![Tag](https://img.shields.io/github/tag/jfut/ipset-fast-update.svg)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
 Fast update of IP set for ipset.
 
 ## Usage
