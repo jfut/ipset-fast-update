@@ -1,5 +1,8 @@
 # ipset-fast-update
 
+![Tag](https://img.shields.io/github/tag/jfut/ipset-fast-update.svg)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
 Fast update of IP set for ipset.
 
 ## Usage
@@ -35,16 +38,16 @@ Usage:
            -i list3.txt
 
         ipset-fast-update -n DENY_LIST \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level2.netset \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level3.netset \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level4.netset \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/et_botcc.ipset
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset \
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level2.netset \
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level3.netset \
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level4.netset \
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_anonymous.netset
 
         ipset-fast-update -n DENY_MIX_LIST \
            -i list1.txt \
            -i list2.txt \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset
 ```
 
 ## Examples
@@ -53,29 +56,29 @@ Usage:
 
 - Install `ipset-service`
 
-```
+```bash
+# RHEL/AlmaLinux/Rocky Linux 8 or later
+dnf install ipset-service
+
 # RHEL/CentOS 7
 yum install ipset-service
-
-# RHEL/CentOS 8
-dnf install ipset-service
 ```
 
 Enable services:
 
-```
+```bash
 systemctl enable ipset.service
 ```
 
 - Edit `/etc/sysconfig/ipset-config`
 
-```
+```bash
 IPSET_SAVE_ON_STOP="yes"
 ```
 
 Create the `ALLOW_LIST_JP` set.
 
-```
+```bash
 ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 ```
 
@@ -83,7 +86,7 @@ Add rules to iptables configuration.
 
 - `iptables` command or /etc/sysconfig/iptables on RHEL/CentOS
 
-```
+```bash
 # SSH
 -A INPUT -p tcp -m tcp --dport 22 -m set --match-set ALLOW_LIST_JP src -j ACCEPT
 
@@ -92,14 +95,12 @@ Add rules to iptables configuration.
 -A INPUT -p tcp -m tcp --dport 443 -m set --match-set ALLOW_LIST_JP src -j ACCEPT
 
 # Drop Attacks for inbound access
--A INPUT -m set --match-set DENY_LIST_ATTACK src -j DROP
--A INPUT -m set --match-set DENY_LIST_BOT_CC src -j DROP
--A INPUT -m set --match-set DENY_LIST_ANONYMOUS_TOR src -j DROP
+-A INPUT -m set --match-set DENY_LIST src -j DROP
+-A INPUT -m set --match-set DENY_MIX_LIST src -j DROP
 
 # Reject Attacks for outbound access
--A OUTPUT -m set --match-set DENY_LIST_ATTACK dst -j REJECT
--A OUTPUT -m set --match-set DENY_LIST_BOT_CC dst -j REJECT
--A OUTPUT -m set --match-set DENY_LIST_ANONYMOUS_TOR dst -j REJECT
+-A OUTPUT -m set --match-set DENY_LIST dst -j REJECT
+-A OUTPUT -m set --match-set DENY_MIX_LIST dst -j REJECT
 ```
 Add the cron job to the root crontab.
 
@@ -107,19 +108,10 @@ Add the cron job to the root crontab.
 
 If you are using multiple lists, it is better to create an update script and register it with cron.
 
-```
+```bash
 # daily
 # Example of ALLOW_LIST_JP only
 42 01 * * * /path/to/ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
-```
-
-## Release tag
-
-e.g.:
-
-```
-git tag -a v1.4 -m "v1.4"
-git push origin refs/tags/v1.4
 ```
 
 ## License

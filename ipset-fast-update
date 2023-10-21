@@ -6,7 +6,7 @@
 #   - RHEL/CentOS: vi /etc/sysconfig/ipset-config
 #     IPSET_SAVE_ON_STOP="yes"
 #
-# Copyright (C) 2018-2020 Jun Futagawa (jfut)
+# Copyright (C) 2018-2023 Jun Futagawa (jfut)
 #
 # This software is released under the MIT License.
 # http://opensource.org/licenses/mit-license.php
@@ -62,16 +62,16 @@ Usage:
            -i list3.txt
 
         ipset-fast-update -n DENY_LIST \\
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset \\
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level2.netset \\
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level3.netset \\
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level4.netset \\
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/et_botcc.ipset
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset \\
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level2.netset \\
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level3.netset \\
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level4.netset \\
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_anonymous.netset
 
         ipset-fast-update -n DENY_MIX_LIST \\
            -i list1.txt \\
            -i list2.txt \\
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset
 _EOF_
 }
 
