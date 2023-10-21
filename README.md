@@ -56,29 +56,29 @@ Usage:
 
 - Install `ipset-service`
 
-```
+```bash
+# RHEL/AlmaLinux/Rocky Linux 8 or later
+dnf install ipset-service
+
 # RHEL/CentOS 7
 yum install ipset-service
-
-# RHEL/CentOS 8
-dnf install ipset-service
 ```
 
 Enable services:
 
-```
+```bash
 systemctl enable ipset.service
 ```
 
 - Edit `/etc/sysconfig/ipset-config`
 
-```
+```bash
 IPSET_SAVE_ON_STOP="yes"
 ```
 
 Create the `ALLOW_LIST_JP` set.
 
-```
+```bash
 ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 ```
 
@@ -86,7 +86,7 @@ Add rules to iptables configuration.
 
 - `iptables` command or /etc/sysconfig/iptables on RHEL/CentOS
 
-```
+```bash
 # SSH
 -A INPUT -p tcp -m tcp --dport 22 -m set --match-set ALLOW_LIST_JP src -j ACCEPT
 
@@ -108,19 +108,10 @@ Add the cron job to the root crontab.
 
 If you are using multiple lists, it is better to create an update script and register it with cron.
 
-```
+```bash
 # daily
 # Example of ALLOW_LIST_JP only
 42 01 * * * /path/to/ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
-```
-
-## Release tag
-
-e.g.:
-
-```
-git tag -a v1.4 -m "v1.4"
-git push origin refs/tags/v1.4
 ```
 
 ## License
