@@ -38,16 +38,16 @@ Usage:
            -i list3.txt
 
         ipset-fast-update -n DENY_LIST \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level2.netset \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level3.netset \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level4.netset \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/et_botcc.ipset
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset \
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level2.netset \
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level3.netset \
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level4.netset \
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_anonymous.netset
 
         ipset-fast-update -n DENY_MIX_LIST \
            -i list1.txt \
            -i list2.txt \
-           -u https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset
 ```
 
 ## Examples
@@ -95,14 +95,12 @@ Add rules to iptables configuration.
 -A INPUT -p tcp -m tcp --dport 443 -m set --match-set ALLOW_LIST_JP src -j ACCEPT
 
 # Drop Attacks for inbound access
--A INPUT -m set --match-set DENY_LIST_ATTACK src -j DROP
--A INPUT -m set --match-set DENY_LIST_BOT_CC src -j DROP
--A INPUT -m set --match-set DENY_LIST_ANONYMOUS_TOR src -j DROP
+-A INPUT -m set --match-set DENY_LIST src -j DROP
+-A INPUT -m set --match-set DENY_MIX_LIST src -j DROP
 
 # Reject Attacks for outbound access
--A OUTPUT -m set --match-set DENY_LIST_ATTACK dst -j REJECT
--A OUTPUT -m set --match-set DENY_LIST_BOT_CC dst -j REJECT
--A OUTPUT -m set --match-set DENY_LIST_ANONYMOUS_TOR dst -j REJECT
+-A OUTPUT -m set --match-set DENY_LIST dst -j REJECT
+-A OUTPUT -m set --match-set DENY_MIX_LIST dst -j REJECT
 ```
 Add the cron job to the root crontab.
 
