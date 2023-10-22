@@ -26,9 +26,9 @@ IPSET_MAXELEM="4294967295"
 IPSET_CONFIG="/etc/sysconfig/ipset-config"
 STATE_DIR="/var/lib/ipset-fast-update"
 
-unset LIST_FILE
-unset TMP_LIST_FILE
-unset TMP_LIST_CURRENT_FILE
+LIST_FILE=""
+TMP_LIST_FILE=""
+TMP_LIST_CURRENT_FILE=""
 
 trap atexit EXIT
 trap 'rc=$?; trap - EXIT; atexit; exit $?' INT PIPE TERM
