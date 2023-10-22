@@ -13,44 +13,44 @@ ipset-fast-update 1.5.0
 Usage:
     ipset-fast-update -n SET_NAME [-i PATH]... [-u URL]... [-e EXCLUDE_PATH]... [OPTIONS...]
 
-    Options:
-        -n IP set name of ipset
-        -i IP set file path
-        -u IP set url
-        -e exclude IP set file path
-        -d state directory (default: /var/lib/ipset-fast-update)
-        -f fource update
-        -r alert threshold ratio (default: 80)
-           If the threshold is exceeded, the list will not be updated without the -f option.
-        -t temporary mode
-           This option does not "/usr/libexec/ipset/ipset.start-stop save" for persistent settings.
-        -v verbose mode
-        -h help
+Options:
+    -n IP set name of ipset
+    -i include IP set from file path
+    -u include IP set from url
+    -e exclude IP set file path
+    -d state directory (default: /var/lib/ipset-fast-update)
+    -f fource update
+    -r alert threshold ratio (default: 80)
+        If the threshold is exceeded, the list will not be updated without the -f option.
+    -t temporary mode
+        This option does not "/usr/libexec/ipset/ipset.start-stop save" for persistent settings.
+    -v verbose mode
+    -h help
 
     If the "iprange" command exists, then it is used for optimization.
     https://github.com/firehol/iprange
 
-    EXAMPLES
-        ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
+EXAMPLES
+    ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 
-        ipset-fast-update -n ALLOW_LIST_FILE \
-           -i list1.txt \
-           -i list2.txt \
-           -i list3.txt
+    ipset-fast-update -n ALLOW_LIST_FILE \
+        -i list1.txt \
+        -i list2.txt \
+        -i list3.txt
 
-        ipset-fast-update -n DENY_LIST \
-           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset \
-           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level2.netset \
-           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level3.netset \
-           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level4.netset \
-           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_anonymous.netset \
-           -e exclude1.txt \
-           -e exclude2.txt
+    ipset-fast-update -n DENY_LIST \
+        -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset \
+        -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level2.netset \
+        -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level3.netset \
+        -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level4.netset \
+        -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_anonymous.netset \
+        -e exclude1.txt \
+        -e exclude2.txt
 
-        ipset-fast-update -n DENY_MIX_LIST \
-           -i list1.txt \
-           -i list2.txt \
-           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset
+    ipset-fast-update -n DENY_MIX_LIST \
+        -i list1.txt \
+        -i list2.txt \
+        -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset
 ```
 
 Local IP set file:

@@ -3,7 +3,7 @@
 # Fast update of IP set for ipset
 #
 # Recommend:
-#   - RHEL/CentOS: vi /etc/sysconfig/ipset-config
+#   - RHEL/CentOS/AlmaLinux/Rocky Linux: vi /etc/sysconfig/ipset-config
 #     IPSET_SAVE_ON_STOP="yes"
 #
 # Copyright (C) 2018-2023 Jun Futagawa (jfut)
@@ -11,8 +11,9 @@
 # This software is released under the MIT License.
 # http://opensource.org/licenses/mit-license.php
 
-set -e
-set -u
+set -euo pipefail
+
+VERSION="1.5.0"
 
 ALERT_THRESHOLD_RATIO="80"
 IS_TEMPORARY="0"
@@ -22,59 +23,56 @@ IS_FORCE="0"
 # If you change this, you need destroy current set and create new one.
 IPSET_MAXELEM="4294967295"
 
-VERSION="1.5.0"
 IPSET_CONFIG="/etc/sysconfig/ipset-config"
 STATE_DIR="/var/lib/ipset-fast-update"
-
-# Source ipset configuration
-[[ -f "${IPSET_CONFIG}" ]] && . "${IPSET_CONFIG}"
 
 # Usage
 usage() {
     cat << _EOF_
-ipset-fast-update ${VERSION}
+$(basename ${0}) ${VERSION}
 
 Usage:
-    ipset-fast-update -n SET_NAME [-i PATH]... [-u URL]... [-e EXCLUDE_PATH]... [OPTIONS...]
+    $(basename ${0}) -n SET_NAME [-i PATH]... [-u URL]... [-e EXCLUDE_PATH]... [OPTIONS...]
 
-    Options:
-        -n IP set name of ipset
-        -i IP set file path
-        -u IP set url
-        -e exclude IP set file path
-        -d state directory (default: /var/lib/ipset-fast-update)
-        -f fource update
-        -r alert threshold ratio (default: 80)
-           If the threshold is exceeded, the list will not be updated without the -f option.
-        -t temporary mode
-           This option does not "/usr/libexec/ipset/ipset.start-stop save" for persistent settings.
-        -v verbose mode
-        -h help
+Options:
+    -n IP set name of ipset
+    -i include IP set from file path
+    -u include IP set from url
+    -e exclude IP set file path
+    -d state directory (default: /var/lib/ipset-fast-update)
+    -f fource update
+    -r alert threshold ratio (default: 80)
+        If the threshold is exceeded, the list will not be updated without the -f option.
+    -t temporary mode
+        This option does not "/usr/libexec/ipset/ipset.start-stop save" for persistent settings.
+    -v verbose mode
+    -h help
 
     If the "iprange" command exists, then it is used for optimization.
     https://github.com/firehol/iprange
 
-    EXAMPLES
-        ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
+EXAMPLES
+    $(basename ${0}) -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 
-        ipset-fast-update -n ALLOW_LIST_FILE \\
-           -i list1.txt \\
-           -i list2.txt \\
-           -i list3.txt
+    $(basename ${0}) -n ALLOW_LIST_FILE \\
+        -i list1.txt \\
+        -i list2.txt \\
+        -i list3.txt
 
-        ipset-fast-update -n DENY_LIST \\
-           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset \\
-           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level2.netset \\
-           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level3.netset \\
-           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level4.netset \\
-           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_anonymous.netset \\
-           -e exclude1.txt \\
-           -e exclude2.txt
+    $(basename ${0}) -n DENY_LIST \\
+        -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset \\
+        -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level2.netset \\
+        -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level3.netset \\
+        -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level4.netset \\
+        -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_anonymous.netset \\
+        -e exclude1.txt \\
+        -e exclude2.txt
 
-        ipset-fast-update -n DENY_MIX_LIST \\
-           -i list1.txt \\
-           -i list2.txt \\
-           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset
+    $(basename ${0}) -n DENY_MIX_LIST \\
+        -i list1.txt \\
+        -i list2.txt \\
+        -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset
+
 _EOF_
 }
 
@@ -83,6 +81,7 @@ file_ipset() {
     shift
     local FILE_LIST="${@}"
 
+    local FILE=""
     for FILE in ${FILE_LIST}; do
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ${FILE}"
         cat "${FILE}" >> "${LIST_FILE}"
@@ -94,6 +93,7 @@ download_ipset() {
     shift
     local URL_LIST="${@}"
 
+    local URL=""
     for URL in ${URL_LIST}; do
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ${URL}"
         curl -s --retry 3 "${URL}" >> "${LIST_FILE}"
@@ -106,9 +106,11 @@ exclude_ipset() {
     local EXCLUDE_FILE_LIST="${@}"
 
     local TMP_LIST_FILE="${LIST_FILE}.tmp"
+    local FILE=""
     for FILE in ${EXCLUDE_FILE_LIST}; do
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ${FILE}"
-        EXCLUDE_IP_LIST=$(cat "${FILE}" | grep -E -v "^$|^#")
+        local EXCLUDE_IP_LIST=$(cat "${FILE}" | grep -E -v "^$|^#")
+        local IP=""
         for IP in ${EXCLUDE_IP_LIST}
         do
             [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- Exclude IP: ${IP}"
@@ -127,18 +129,18 @@ diff_ratio() {
     local LIST_FILE="${3}"
 
     set +e
-    cat "${LIST_CURRENT_FILE}" | egrep -v "^#|^$" > "${LIST_CURRENT_FILE}.tmp"
-    cat "${LIST_FILE}" | egrep -v "^#|^$" > "${LIST_FILE}.tmp"
-    set -e
+    cat "${LIST_CURRENT_FILE}" | grep -E -v "^#|^$" > "${LIST_CURRENT_FILE}.tmp"
+    cat "${LIST_FILE}" | grep -E -v "^#|^$" > "${LIST_FILE}.tmp"
 
-    CURRENT_COUNT=$(cat "${LIST_CURRENT_FILE}.tmp" | wc -l)
-    DIFF_COUNT=$(diff "${LIST_CURRENT_FILE}.tmp" "${LIST_FILE}.tmp" | egrep "<|>" | wc -l)
+    local CURRENT_COUNT=$(cat "${LIST_CURRENT_FILE}.tmp" | wc -l)
+    local DIFF_COUNT=$(diff "${LIST_CURRENT_FILE}.tmp" "${LIST_FILE}.tmp" | grep -E "<|>" | wc -l)
+    set -e
 
     if [[ "${CURRENT_COUNT}" -eq 0 ]]; then
         echo "- ${SET_NAME}: Changes: new (${DIFF_COUNT} / ${CURRENT_COUNT})"
         IS_FORCE="1"
     else
-        DIFF_RATIO=$(echo "scale=5; ${DIFF_COUNT} / ${CURRENT_COUNT} * 100" | bc)
+        local DIFF_RATIO=$(echo "scale=5; ${DIFF_COUNT} / ${CURRENT_COUNT} * 100" | bc)
         if [[ "${DIFF_RATIO}" != "0" ]] || [[ "${IS_VERBOSE}" -eq 1 ]]; then
             echo "- ${SET_NAME}: Changes: $(printf "%.2f" ${DIFF_RATIO}) % (${DIFF_COUNT} / ${CURRENT_COUNT})"
         fi
@@ -164,7 +166,7 @@ update_ipset() {
     local SET_NAME="${1}"
     local LIST_FILE="${2}"
 
-    SET_NAME_TMP="${SET_NAME}_TMP"
+    local SET_NAME_TMP="${SET_NAME}_TMP"
 
     # Create an ipset
     [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ipset create -exist ${SET_NAME} hash:net maxelem ${IPSET_MAXELEM}"
@@ -174,7 +176,7 @@ update_ipset() {
     [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ipset flush ${SET_NAME_TMP}"
     ipset flush "${SET_NAME_TMP}"
 
-    cat "${LIST_FILE}" | egrep -v "^#|^$" | sed "s/.*/add ${SET_NAME_TMP} &/g" | ipset restore
+    cat "${LIST_FILE}" | grep -E -v "^#|^$" | sed "s/.*/add ${SET_NAME_TMP} &/g" | ipset restore
 
     [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ipset swap ${SET_NAME_TMP} ${SET_NAME}"
     ipset swap "${SET_NAME_TMP}" "${SET_NAME}"
@@ -184,29 +186,22 @@ update_ipset() {
 
 # Main
 main() {
-    [ ${#} -lt 1 ] && ( usage; exit 1 );
+     [[ $# -lt 1 ]] && usage && exit 1
 
-    SET_NAME=""
-    declare -a FILE_LIST
-    declare -a URL_LIST
+    local SET_NAME=""
+    declare -a FILE_LIST=()
+    declare -a URL_LIST=()
     declare -a EXCLIDE_FILE_LIST=()
-    USE_FILE_LIST=0
-    USE_URL_LIST=0
     while getopts n:i:u:e:d:fr:tvh OPT; do
         case "${OPT}" in
             "n" )
                 SET_NAME="${OPTARG}" ;;
             "i" )
-                FILE_LIST+=("${OPTARG}")
-                USE_FILE_LIST=1
-                ;;
+                FILE_LIST+=("${OPTARG}") ;;
             "u" )
-                URL_LIST+=("${OPTARG}")
-                USE_URL_LIST=1
-                ;;
+                URL_LIST+=("${OPTARG}") ;;
             "e" )
-                EXCLIDE_FILE_LIST+=("${OPTARG}")
-                ;;
+                EXCLIDE_FILE_LIST+=("${OPTARG}") ;;
             "d" )
                 STATE_DIR="${OPTARG}" ;;
             "f" )
@@ -227,7 +222,8 @@ main() {
     done
     shift $((OPTIND - 1))
 
-    if [[ -z "${SET_NAME}" ]] || ( [[ "${USE_FILE_LIST}" -eq 0 ]] && [[ "${USE_URL_LIST}" -eq 0 ]] ); then
+    if [[ -z "${SET_NAME}" ]] || ( [[ "${#FILE_LIST[@]}" -eq 0 ]] && [[ "${#URL_LIST[@]}" -eq 0 ]] ); then
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# Required option not found"
          usage
          exit 1
     fi
@@ -239,7 +235,7 @@ main() {
 
     # If the IP set does not exist, set force mode
     set +e
-    IS_LOADED=$(ipset list -n -t "${SET_NAME}" 2>&1)
+    local IS_LOADED=$(ipset list -n -t "${SET_NAME}" 2>&1)
     if [[ $? -ne 0 ]]; then
         echo "The set '${SET_NAME}' does not exist. Run in force update mode(-f)."
         IS_FORCE="1"
@@ -247,11 +243,11 @@ main() {
     set -e
 
     # IP list file
-    LIST_FILE="${STATE_DIR}/${SET_NAME}"
+    local LIST_FILE="${STATE_DIR}/${SET_NAME}"
     echo > "${LIST_FILE}"
 
     # FILE_LIST: IP set file
-    if [[ "${USE_FILE_LIST}" -eq 1 ]]; then
+    if [[ "${#FILE_LIST[@]}" -ne 0 ]]; then
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# create ${LIST_FILE} (Files: ${#FILE_LIST[@]})"
         file_ipset "${LIST_FILE}" "${FILE_LIST[@]}"
 
@@ -262,7 +258,7 @@ main() {
     fi
 
     # URL_LIST: Download IP set
-    if [[ "${USE_URL_LIST}" -eq 1 ]]; then
+    if [[ "${#URL_LIST[@]}" -ne 0 ]]; then
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# download_ipset ${LIST_FILE} (URLs: ${#URL_LIST[@]})"
         download_ipset "${LIST_FILE}" "${URL_LIST[@]}"
 
@@ -279,16 +275,16 @@ main() {
     fi
 
     # Calculate diff ratio
-    LIST_CURRENT_FILE="${STATE_DIR}/${SET_NAME}.current"
+    local LIST_CURRENT_FILE="${STATE_DIR}/${SET_NAME}.current"
     if [[ ! -f "${LIST_CURRENT_FILE}" ]]; then
         touch "${LIST_CURRENT_FILE}"
     fi
-    DIFF_RATIO="0"
+    local DIFF_RATIO="0"
     [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# diff_ratio ${LIST_CURRENT_FILE} ${LIST_FILE}"
     diff_ratio "${SET_NAME}" "${LIST_CURRENT_FILE}" "${LIST_FILE}"
 
     if [[ "${IS_FORCE}" -ne 1 ]]; then
-        IS_ALERT=$(echo "${ALERT_THRESHOLD_RATIO} <= ${DIFF_RATIO}" | bc)
+        local IS_ALERT=$(echo "${ALERT_THRESHOLD_RATIO} <= ${DIFF_RATIO}" | bc)
         if [[ ${IS_ALERT} -eq 1 ]]; then
             echo "ERROR: alert threshold over (${ALERT_THRESHOLD_RATIO})"
             echo "    Force update: $0 -f ..."
@@ -299,7 +295,7 @@ main() {
     # Update IP set
     if [[ "${IS_FORCE}" -eq 1 || "${DIFF_RATIO}" != "0" ]]; then
         # Optimize IP set
-        LIST_FILE_OPTIMIZED="${LIST_FILE}.optimized"
+        local LIST_FILE_OPTIMIZED="${LIST_FILE}.optimized"
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# optimize_ipset ${LIST_FILE}"
         optimize_ipset "${LIST_FILE}" "${LIST_FILE_OPTIMIZED}"
 
@@ -312,6 +308,11 @@ main() {
         # Save ipset configuration
         if [[ "${IS_TEMPORARY}" -eq 0 ]]; then
             echo "# Save ipset configuration by using /usr/libexec/ipset/ipset.start-stop save"
+            # Source ipset configuration
+            if [[ -f "${IPSET_CONFIG}" ]]; then
+                . "${IPSET_CONFIG}"
+            fi
+
             if [[ "${IPSET_SAVE_ON_STOP}" != "yes" ]]; then
 		echo "--------------------------------------------------------------------------------------"
                 echo "[WARNING]: IPSET_SAVE_ON_STOP in ${IPSET_CONFIG} is not set to yes."
@@ -331,4 +332,3 @@ main() {
 }
 
 [[ ${#BASH_SOURCE[@]} = 1 ]] && main "$@"
-
