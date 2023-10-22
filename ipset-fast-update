@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-VERSION="1.5.1"
+VERSION="1.5.2"
 
 ALERT_THRESHOLD_RATIO="80"
 IS_TEMPORARY="0"
