@@ -141,7 +141,6 @@ exclude_ipset() {
             cat "${TMP_LIST_FILE}" > "${LIST_FILE}"
         done
     done
-    rm -f "${TMP_LIST_FILE}"
 }
 
 diff_ratio() {
@@ -173,15 +172,17 @@ diff_ratio() {
 
 optimize_ipset() {
     local LIST_FILE="${1}"
-    local LIST_FILE_OPTIMIZED="${2}"
 
-    if which iprange >/dev/null 2>&1; then
+    TMP_LIST_FILE="${LIST_FILE}.tmp"
+    if type iprange > /dev/null 2>&1; then
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- optimize: iprange"
-        iprange --optimize "${LIST_FILE}" > "${LIST_FILE_OPTIMIZED}"
+        iprange --optimize "${LIST_FILE}" > "${TMP_LIST_FILE}"
     else
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- optimize: sort, uniq (NOTICE: iprange is better. https://github.com/firehol/iprange)"
-        cat "${LIST_FILE}" | sort | uniq > "${LIST_FILE_OPTIMIZED}"
+        cat "${LIST_FILE}" | sort | uniq > "${TMP_LIST_FILE}"
     fi
+
+    cat "${TMP_LIST_FILE}" > "${LIST_FILE}"
 }
 
 update_ipset() {
@@ -296,6 +297,10 @@ main() {
         exclude_ipset "${LIST_FILE}" "${EXCLIDE_FILE_LIST[@]}"
     fi
 
+    # Optimize IP set
+    [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# optimize_ipset ${LIST_FILE}"
+    optimize_ipset "${LIST_FILE}"
+
     # Calculate diff ratio
     local LIST_CURRENT_FILE="${STATE_DIR}/${SET_NAME}.current"
     if [[ ! -f "${LIST_CURRENT_FILE}" ]]; then
@@ -316,16 +321,9 @@ main() {
 
     # Update IP set
     if [[ "${IS_FORCE}" -eq 1 || "${DIFF_RATIO}" != "0" ]]; then
-        # Optimize IP set
-        local LIST_FILE_OPTIMIZED="${LIST_FILE}.optimized"
-        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# optimize_ipset ${LIST_FILE}"
-        optimize_ipset "${LIST_FILE}" "${LIST_FILE_OPTIMIZED}"
-
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# update_ipset ${SET_NAME} ${LIST_FILE}"
-        update_ipset "${SET_NAME}" "${LIST_FILE_OPTIMIZED}"
+        update_ipset "${SET_NAME}" "${LIST_FILE}"
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# Updated: ${SET_NAME}"
-
-        rm -f "${LIST_FILE_OPTIMIZED}"
 
         # Save ipset configuration
         if [[ "${IS_TEMPORARY}" -eq 0 ]]; then
