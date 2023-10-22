@@ -26,6 +26,13 @@ IPSET_MAXELEM="4294967295"
 IPSET_CONFIG="/etc/sysconfig/ipset-config"
 STATE_DIR="/var/lib/ipset-fast-update"
 
+unset LIST_FILE
+unset TMP_LIST_FILE
+unset TMP_LIST_CURRENT_FILE
+
+trap atexit EXIT
+trap 'rc=$?; trap - EXIT; atexit; exit $?' INT PIPE TERM
+
 # Usage
 usage() {
     cat << _EOF_
@@ -76,6 +83,20 @@ EXAMPLES
 _EOF_
 }
 
+atexit() {
+    if [[ "${IS_VERBOSE}" -eq 0 ]]; then
+        if [[ ! -z "${LIST_FILE}" ]]; then
+            rm -f "${LIST_FILE}"
+        fi
+        if [[ ! -z "${TMP_LIST_FILE}" ]]; then
+            rm -f "${TMP_LIST_FILE}"
+        fi
+        if [[ ! -z "${TMP_LIST_CURRENT_FILE}" ]]; then
+            rm -f "${TMP_LIST_CURRENT_FILE}"
+        fi
+    fi
+}
+
 file_ipset() {
     local LIST_FILE="${1}"
     shift
@@ -105,7 +126,7 @@ exclude_ipset() {
     shift
     local EXCLUDE_FILE_LIST="${@}"
 
-    local TMP_LIST_FILE="${LIST_FILE}.tmp"
+    TMP_LIST_FILE="${LIST_FILE}.tmp"
     local FILE=""
     for FILE in ${EXCLUDE_FILE_LIST}; do
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ${FILE}"
@@ -128,12 +149,15 @@ diff_ratio() {
     local LIST_CURRENT_FILE="${2}"
     local LIST_FILE="${3}"
 
-    set +e
-    cat "${LIST_CURRENT_FILE}" | grep -E -v "^#|^$" > "${LIST_CURRENT_FILE}.tmp"
-    cat "${LIST_FILE}" | grep -E -v "^#|^$" > "${LIST_FILE}.tmp"
+    TMP_LIST_CURRENT_FILE="${LIST_CURRENT_FILE}.tmp"
+    TMP_LIST_FILE="${LIST_FILE}.tmp"
 
-    local CURRENT_COUNT=$(cat "${LIST_CURRENT_FILE}.tmp" | wc -l)
-    local DIFF_COUNT=$(diff "${LIST_CURRENT_FILE}.tmp" "${LIST_FILE}.tmp" | grep -E "<|>" | wc -l)
+    set +e
+    cat "${LIST_CURRENT_FILE}" | grep -E -v "^#|^$" > "${TMP_LIST_CURRENT_FILE}"
+    cat "${LIST_FILE}" | grep -E -v "^#|^$" > "${TMP_LIST_FILE}"
+
+    local CURRENT_COUNT=$(cat "${TMP_LIST_CURRENT_FILE}" | wc -l)
+    local DIFF_COUNT=$(diff "${TMP_LIST_CURRENT_FILE}" "${TMP_LIST_FILE}" | grep -E "<|>" | wc -l)
     set -e
 
     if [[ "${CURRENT_COUNT}" -eq 0 ]]; then
@@ -145,8 +169,6 @@ diff_ratio() {
             echo "- ${SET_NAME}: Changes: $(printf "%.2f" ${DIFF_RATIO}) % (${DIFF_COUNT} / ${CURRENT_COUNT})"
         fi
     fi
-
-    rm -f "${LIST_CURRENT_FILE}.tmp" "${LIST_FILE}.tmp"
 }
 
 optimize_ipset() {
@@ -243,7 +265,7 @@ main() {
     set -e
 
     # IP list file
-    local LIST_FILE="${STATE_DIR}/${SET_NAME}"
+    LIST_FILE="${STATE_DIR}/${SET_NAME}"
     echo > "${LIST_FILE}"
 
     # FILE_LIST: IP set file
