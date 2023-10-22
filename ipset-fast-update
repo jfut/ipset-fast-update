@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-VERSION="1.5.0"
+VERSION="1.5.1"
 
 ALERT_THRESHOLD_RATIO="80"
 IS_TEMPORARY="0"
@@ -334,11 +334,13 @@ main() {
             fi
 
             if [[ "${IPSET_SAVE_ON_STOP}" != "yes" ]]; then
-		echo "--------------------------------------------------------------------------------------"
-                echo "[WARNING]: IPSET_SAVE_ON_STOP in ${IPSET_CONFIG} is not set to yes."
-		echo "It is recommended that you set it to 'yes' for the setting to take effect permanently."
-		echo "If you do not want to save the configuration automatically, use the -t option."
-		echo "--------------------------------------------------------------------------------------"
+                cat << _EOF_
+--------------------------------------------------------------------------------------
+[WARNING]: IPSET_SAVE_ON_STOP in ${IPSET_CONFIG} is not set to yes.
+It is recommended that you set it to 'yes' for the setting to take effect permanently.
+If you do not want to save the configuration automatically, use the -t option.
+--------------------------------------------------------------------------------------
+_EOF_
             fi
             /usr/libexec/ipset/ipset.start-stop save
         fi
@@ -348,7 +350,7 @@ main() {
     [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# Check set: ipset list -t ${SET_NAME}, ipset list ${SET_NAME}"
 
     # Save current list file
-    yes | mv "${LIST_FILE}" "${LIST_CURRENT_FILE}"
+    cat "${LIST_FILE}" > "${LIST_CURRENT_FILE}"
 }
 
 [[ ${#BASH_SOURCE[@]} = 1 ]] && main "$@"

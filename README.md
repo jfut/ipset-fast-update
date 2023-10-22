@@ -8,7 +8,7 @@ Fast update of IP set for ipset.
 ## Usage
 
 ```bash
-ipset-fast-update 1.5.0
+ipset-fast-update 1.5.1
 
 Usage:
     ipset-fast-update -n SET_NAME [-i PATH]... [-u URL]... [-e EXCLUDE_PATH]... [OPTIONS...]
