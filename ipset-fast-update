@@ -22,7 +22,7 @@ IS_FORCE="0"
 # If you change this, you need destroy current set and create new one.
 IPSET_MAXELEM="4294967295"
 
-VERSION="1.4"
+VERSION="1.5.0"
 IPSET_CONFIG="/etc/sysconfig/ipset-config"
 STATE_DIR="/var/lib/ipset-fast-update"
 
@@ -35,12 +35,13 @@ usage() {
 ipset-fast-update ${VERSION}
 
 Usage:
-    ipset-fast-update -n SET_NAME [-i PATH]... [-u URL]... [OPTIONS...]
+    ipset-fast-update -n SET_NAME [-i PATH]... [-u URL]... [-e EXCLUDE_PATH]... [OPTIONS...]
 
     Options:
         -n IP set name of ipset
         -i IP set file path
         -u IP set url
+        -e exclude IP set file path
         -d state directory (default: /var/lib/ipset-fast-update)
         -f fource update
         -r alert threshold ratio (default: 80)
@@ -66,7 +67,9 @@ Usage:
            -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level2.netset \\
            -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level3.netset \\
            -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level4.netset \\
-           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_anonymous.netset
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_anonymous.netset \\
+           -e exclude1.txt \\
+           -e exclude2.txt
 
         ipset-fast-update -n DENY_MIX_LIST \\
            -i list1.txt \\
@@ -82,7 +85,7 @@ file_ipset() {
 
     for FILE in ${FILE_LIST}; do
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ${FILE}"
-        cat  "${FILE}" >> "${LIST_FILE}"
+        cat "${FILE}" >> "${LIST_FILE}"
     done
 }
 
@@ -95,6 +98,27 @@ download_ipset() {
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ${URL}"
         curl -s --retry 3 "${URL}" >> "${LIST_FILE}"
     done
+}
+
+exclude_ipset() {
+    local LIST_FILE="${1}"
+    shift
+    local EXCLUDE_FILE_LIST="${@}"
+
+    local TMP_LIST_FILE="${LIST_FILE}.tmp"
+    for FILE in ${EXCLUDE_FILE_LIST}; do
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ${FILE}"
+        EXCLUDE_IP_LIST=$(cat "${FILE}" | grep -E -v "^$|^#")
+        for IP in ${EXCLUDE_IP_LIST}
+        do
+            [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- Exclude IP: ${IP}"
+            set +e
+            grep -E -v "^${IP}$" "${LIST_FILE}" > "${TMP_LIST_FILE}"
+            set -e
+            cat "${TMP_LIST_FILE}" > "${LIST_FILE}"
+        done
+    done
+    rm -f "${TMP_LIST_FILE}"
 }
 
 diff_ratio() {
@@ -165,9 +189,10 @@ main() {
     SET_NAME=""
     declare -a FILE_LIST
     declare -a URL_LIST
+    declare -a EXCLIDE_FILE_LIST=()
     USE_FILE_LIST=0
     USE_URL_LIST=0
-    while getopts n:i:u:d:fr:tvh OPT; do
+    while getopts n:i:u:e:d:fr:tvh OPT; do
         case "${OPT}" in
             "n" )
                 SET_NAME="${OPTARG}" ;;
@@ -178,6 +203,9 @@ main() {
             "u" )
                 URL_LIST+=("${OPTARG}")
                 USE_URL_LIST=1
+                ;;
+            "e" )
+                EXCLIDE_FILE_LIST+=("${OPTARG}")
                 ;;
             "d" )
                 STATE_DIR="${OPTARG}" ;;
@@ -200,7 +228,8 @@ main() {
     shift $((OPTIND - 1))
 
     if [[ -z "${SET_NAME}" ]] || ( [[ "${USE_FILE_LIST}" -eq 0 ]] && [[ "${USE_URL_LIST}" -eq 0 ]] ); then
-         usage; exit 1
+         usage
+         exit 1
     fi
 
     # Create state directory
@@ -241,6 +270,12 @@ main() {
             echo "Download failed: ${URL}"
             exit 1
         fi
+    fi
+
+    # EXCLIDE_FILE_LIST: Exclude IP set file
+    if [[ "${#EXCLIDE_FILE_LIST[@]}" -ne 0 ]]; then
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# exclude ${LIST_FILE} (Files: ${#EXCLIDE_FILE_LIST[@]})"
+        exclude_ipset "${LIST_FILE}" "${EXCLIDE_FILE_LIST[@]}"
     fi
 
     # Calculate diff ratio

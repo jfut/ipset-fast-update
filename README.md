@@ -7,16 +7,17 @@ Fast update of IP set for ipset.
 
 ## Usage
 
-```
-ipset-fast-update 1.4
+```bash
+ipset-fast-update 1.5.0
 
 Usage:
-    ipset-fast-update -n SET_NAME [-i PATH]... [-u URL]... [OPTIONS...]
+    ipset-fast-update -n SET_NAME [-i PATH]... [-u URL]... [-e EXCLUDE_PATH]... [OPTIONS...]
 
     Options:
         -n IP set name of ipset
         -i IP set file path
         -u IP set url
+        -e exclude IP set file path
         -d state directory (default: /var/lib/ipset-fast-update)
         -f fource update
         -r alert threshold ratio (default: 80)
@@ -42,12 +43,32 @@ Usage:
            -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level2.netset \
            -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level3.netset \
            -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level4.netset \
-           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_anonymous.netset
+           -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_anonymous.netset \
+           -e exclude1.txt \
+           -e exclude2.txt
 
         ipset-fast-update -n DENY_MIX_LIST \
            -i list1.txt \
            -i list2.txt \
            -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset
+```
+
+Local IP set file:
+
+```bash
+$ cat list1.txt
+10.0.0.100
+10.0.1.0/24
+```
+
+Local exclude IP set file:
+
+The CIDR of the exclusion IP set will not be expanded. Only those that exactly match the descriptions within the IP set will be excluded.
+
+```bash
+$ cat exclude1.txt
+192.168.0.100
+192.168.1.0/24
 ```
 
 ## Examples
