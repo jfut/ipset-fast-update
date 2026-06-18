@@ -1,0 +1,77 @@
+version: 2
+
+project_name: ipset-fast-update
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+metadata:
+  mod_timestamp: "{{ .CommitTimestamp }}"
+
+report_sizes: true
+
+gomod:
+  gobinary: /bin/true
+
+builds:
+  - id: ipset-fast-update
+    skip: true
+
+archives:
+  - id: binaries
+    meta: true
+    formats: ["tar.gz"]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_noarch"
+    builds_info:
+      group: root
+      owner: root
+      mode: 0755
+    files:
+      - src: ipset-fast-update
+        dst: ipset-fast-update
+        info:
+          mode: 0755
+          owner: root
+          group: root
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+checksum:
+  name_template: "checksums.txt"
+
+nfpms:
+  - id: ipset-fast-update
+    meta: true
+    package_name: ipset-fast-update
+    file_name_template: "{{ .ConventionalFileName }}"
+    description: |-
+      ipset-fast-update is a fast updater for ipset IP sets
+    maintainer: Jun Futagawa <jfut@integ.jp>
+    license: MIT
+    vendor: ipset-fast-update project
+    bindir: /usr/sbin
+    section: utils
+    formats:
+      - apk
+      - deb
+      - rpm
+      - archlinux
+    contents:
+      - src: ipset-fast-update
+        dst: /usr/sbin/ipset-fast-update
+        file_info:
+          mode: 0755
+          owner: root
+          group: root
+      - src: LICENSE
+        dst: /usr/share/licenses/ipset-fast-update/LICENSE
+        file_info:
+          mode: 0644
+    deb:
+      lintian_overrides:
+        - changelog-file-missing-in-native-package

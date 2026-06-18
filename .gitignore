@@ -1,1 +1,5 @@
+dist/
+tmp/
+tmp.*
+
 .ipset-fast-update/
