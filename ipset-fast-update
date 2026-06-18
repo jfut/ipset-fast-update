@@ -19,6 +19,7 @@ ALERT_THRESHOLD_RATIO="80"
 IS_TEMPORARY="0"
 IS_VERBOSE="0"
 IS_FORCE="0"
+PERCENT_SCALE="100000"
 
 # If you change this, you need destroy current set and create new one.
 IPSET_MAXELEM="4294967295"
@@ -160,6 +161,36 @@ exclude_ipset() {
     fi
 }
 
+percent_to_scaled() {
+    local VALUE="${1}"
+    local INTEGER_PART=""
+    local FRACTION_PART=""
+    local FRACTION_PADDED=""
+
+    if [[ ! "${VALUE}" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+        echo "ERROR: invalid ratio (${VALUE})" >&2
+        exit 1
+    fi
+
+    # Convert a decimal percentage to a scaled integer for bash-only comparison.
+    INTEGER_PART="${VALUE%%.*}"
+    if [[ "${VALUE}" == *.* ]]; then
+        FRACTION_PART="${VALUE#*.}"
+    fi
+    FRACTION_PADDED="${FRACTION_PART}00000"
+    FRACTION_PADDED="${FRACTION_PADDED:0:5}"
+
+    echo $((10#${INTEGER_PART} * PERCENT_SCALE + 10#${FRACTION_PADDED}))
+}
+
+format_scaled_percent() {
+    local SCALED_PERCENT="${1}"
+    local DISPLAY_SCALED=$(((SCALED_PERCENT + 500) / 1000))
+
+    # Format a scaled integer percentage as a value with two decimal places.
+    printf "%d.%02d" $((DISPLAY_SCALED / 100)) $((DISPLAY_SCALED % 100))
+}
+
 diff_ratio() {
     local SET_NAME="${1}"
     local LIST_CURRENT_FILE="${2}"
@@ -180,9 +211,10 @@ diff_ratio() {
         echo "- ${SET_NAME}: Changes: new (${DIFF_COUNT} / ${CURRENT_COUNT})"
         IS_FORCE="1"
     else
-        local DIFF_RATIO=$(echo "scale=5; ${DIFF_COUNT} / ${CURRENT_COUNT} * 100" | bc)
+        # Calculate the percentage with bash integer arithmetic only.
+        DIFF_RATIO=$((DIFF_COUNT * 100 * PERCENT_SCALE / CURRENT_COUNT))
         if [[ "${DIFF_RATIO}" != "0" ]] || [[ "${IS_VERBOSE}" -eq 1 ]]; then
-            echo "- ${SET_NAME}: Changes: $(printf "%.2f" ${DIFF_RATIO}) % (${DIFF_COUNT} / ${CURRENT_COUNT})"
+            echo "- ${SET_NAME}: Changes: $(format_scaled_percent "${DIFF_RATIO}") % (${DIFF_COUNT} / ${CURRENT_COUNT})"
         fi
     fi
 }
@@ -328,8 +360,9 @@ main() {
     diff_ratio "${SET_NAME}" "${LIST_CURRENT_FILE}" "${LIST_FILE}"
 
     if [[ "${IS_FORCE}" -ne 1 ]]; then
-        local IS_ALERT=$(echo "${ALERT_THRESHOLD_RATIO} <= ${DIFF_RATIO}" | bc)
-        if [[ ${IS_ALERT} -eq 1 ]]; then
+        # Compare percentages with bash integer arithmetic only.
+        local ALERT_THRESHOLD_RATIO_SCALED=$(percent_to_scaled "${ALERT_THRESHOLD_RATIO}")
+        if [[ "${ALERT_THRESHOLD_RATIO_SCALED}" -le "${DIFF_RATIO}" ]]; then
             echo "ERROR: alert threshold over (${ALERT_THRESHOLD_RATIO})"
             echo "    Force update: $0 -f ..."
             exit 1
