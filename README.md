@@ -3,7 +3,7 @@
 ![Tag](https://img.shields.io/github/tag/jfut/ipset-fast-update.svg)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Fast update of IP set for ipset.
+ipset-fast-update is a fast updater for ipset IP sets.
 
 ## Usage
 
@@ -135,6 +135,24 @@ If you are using multiple lists, it is better to create an update script and reg
 42 01 * * * /path/to/ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 ```
 
+## Release packaging with goreleaser
+
+Build release artifacts locally:
+
+```bash
+just snapshot
+just release
+```
+
+Generated files are stored in `dist/`.
+
+## Release
+
+1. Run `git tag -s vX.Y.Z -m vX.Y.Z` and wait for the Release to be created.
+2. Edit the created Release.
+3. Press the `Generate release notes` button and edit the release notes.
+4. Press the `Update release` button.
+
 ## License
 
 MIT
@@ -142,4 +160,3 @@ MIT
 ## Author
 
 Jun Futagawa (jfut)
-
