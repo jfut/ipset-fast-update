@@ -3,17 +3,17 @@
 # Fast update of IP set for ipset
 #
 # Recommend:
-#   - RHEL/CentOS/AlmaLinux/Rocky Linux: vi /etc/sysconfig/ipset-config
+#   - RHEL/AlmaLinux/Rocky Linux: vi /etc/sysconfig/ipset-config
 #     IPSET_SAVE_ON_STOP="yes"
 #
-# Copyright (C) 2018-2023 Jun Futagawa (jfut)
+# Copyright (C) 2018-2026 Jun Futagawa (jfut)
 #
 # This software is released under the MIT License.
 # http://opensource.org/licenses/mit-license.php
 
 set -euo pipefail
 
-VERSION="1.5.2"
+VERSION="1.6.0"
 
 ALERT_THRESHOLD_RATIO="80"
 IS_TEMPORARY="0"
@@ -59,6 +59,7 @@ Options:
 
     If the "iprange" command exists, then it is used for optimization.
     https://github.com/firehol/iprange
+    https://github.com/firehol/packages
 
 EXAMPLES
     $(basename "$0") -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt

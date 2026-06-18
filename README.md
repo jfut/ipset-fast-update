@@ -8,7 +8,7 @@ ipset-fast-update is a fast updater for ipset IP sets.
 ## Usage
 
 ```bash
-ipset-fast-update 1.5.2
+ipset-fast-update 1.6.0
 
 Usage:
     ipset-fast-update -n SET_NAME [-i PATH]... [-u URL]... [-e EXCLUDE_PATH]... [OPTIONS...]
@@ -29,6 +29,7 @@ Options:
 
     If the "iprange" command exists, then it is used for optimization.
     https://github.com/firehol/iprange
+    https://github.com/firehol/packages
 
 EXAMPLES
     ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
@@ -63,7 +64,7 @@ $ cat list1.txt
 
 Local exclude IP set file:
 
-The CIDR of the exclusion IP set will not be expanded. Only those that exactly match the descriptions within the IP set will be excluded.
+CIDR entries in the exclusion IP set are matched exactly unless the [iprange](https://github.com/firehol/iprange)([package](https://github.com/firehol/packages)) command is available, in which case ranges are processed for exclusion.
 
 ```bash
 $ cat exclude1.txt
@@ -73,16 +74,15 @@ $ cat exclude1.txt
 
 ## Examples
 
-(Optional) Save current ipsets when stopping ipset service on RHEL/CentOS 7 and 8.
+On RHEL compatible, install `ipset-service` and enable saving if you want updates to persist.
+
+On other distributions, use `-t` to skip `/usr/libexec/ipset/ipset.start-stop save` and manage persistence with your distribution's ipset service.
 
 - Install `ipset-service`
 
 ```bash
 # RHEL/AlmaLinux/Rocky Linux 8 or later
 dnf install ipset-service
-
-# RHEL/CentOS 7
-yum install ipset-service
 ```
 
 Enable services:
@@ -105,7 +105,7 @@ ipset-fast-update -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 
 Add rules to iptables configuration.
 
-- `iptables` command or /etc/sysconfig/iptables on RHEL/CentOS
+- `iptables` command or /etc/sysconfig/iptables on RHEL compatible
 
 ```bash
 # SSH
@@ -148,10 +148,11 @@ Generated files are stored in `dist/`.
 
 ## Release
 
-1. Run `git tag -s vX.Y.Z -m vX.Y.Z` and wait for the Release to be created.
-2. Edit the created Release.
-3. Press the `Generate release notes` button and edit the release notes.
-4. Press the `Update release` button.
+1. Run `git tag -s vX.Y.Z -m vX.Y.Z`.
+2. Run `git push origin vX.Y.Z` and wait for the Release to be created.
+3. Edit the created Release.
+4. Press the `Generate release notes` button and edit the release notes.
+5. Press the `Update release` button.
 
 ## License
 
