@@ -29,6 +29,7 @@ STATE_DIR="/var/lib/ipset-fast-update"
 LIST_FILE=""
 TMP_LIST_FILE=""
 TMP_LIST_CURRENT_FILE=""
+TMP_EXCLUDE_FILE=""
 
 trap atexit EXIT
 trap 'rc=$?; trap - EXIT; atexit; exit $?' INT PIPE TERM
@@ -94,6 +95,9 @@ atexit() {
         if [[ ! -z "${TMP_LIST_CURRENT_FILE}" ]]; then
             rm -f "${TMP_LIST_CURRENT_FILE}"
         fi
+        if [[ ! -z "${TMP_EXCLUDE_FILE}" ]]; then
+            rm -f "${TMP_EXCLUDE_FILE}"
+        fi
     fi
 }
 
@@ -127,20 +131,33 @@ exclude_ipset() {
     local EXCLUDE_FILE_LIST="${@}"
 
     TMP_LIST_FILE="${LIST_FILE}.tmp"
+    TMP_EXCLUDE_FILE="${LIST_FILE}-exclude.tmp"
+    echo > "${TMP_EXCLUDE_FILE}"
+
     local FILE=""
     for FILE in ${EXCLUDE_FILE_LIST}; do
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ${FILE}"
-        local EXCLUDE_IP_LIST=$(cat "${FILE}" | grep -E -v "^$|^#")
+        grep -E -v "^$|^#" "${FILE}" >> "${TMP_EXCLUDE_FILE}" || true
+    done
+
+    if type iprange > /dev/null 2>&1; then
+        # Remove both single IPs and CIDR ranges from the generated list.
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- Exclude IP by iprange"
+        iprange "${LIST_FILE}" --except "${TMP_EXCLUDE_FILE}" > "${TMP_LIST_FILE}"
+        cat "${TMP_LIST_FILE}" > "${LIST_FILE}"
+    else
+        # Remove single IPs only from the generated list.
+        local EXCLUDE_IP_LIST=$(cat "${TMP_EXCLUDE_FILE}")
         local IP=""
         for IP in ${EXCLUDE_IP_LIST}
         do
             [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- Exclude IP: ${IP}"
             set +e
-            grep -E -v "^${IP}$" "${LIST_FILE}" > "${TMP_LIST_FILE}"
+            grep -F -x -v -- "${IP}" "${LIST_FILE}" > "${TMP_LIST_FILE}"
             set -e
             cat "${TMP_LIST_FILE}" > "${LIST_FILE}"
         done
-    done
+    fi
 }
 
 diff_ratio() {
