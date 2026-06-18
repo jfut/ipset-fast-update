@@ -19,6 +19,7 @@ ALERT_THRESHOLD_RATIO="80"
 IS_TEMPORARY="0"
 IS_VERBOSE="0"
 IS_FORCE="0"
+PERCENT_SCALE="100000"
 
 # If you change this, you need destroy current set and create new one.
 IPSET_MAXELEM="4294967295"
@@ -32,15 +33,15 @@ TMP_LIST_CURRENT_FILE=""
 TMP_EXCLUDE_FILE=""
 
 trap atexit EXIT
-trap 'rc=$?; trap - EXIT; atexit; exit $?' INT PIPE TERM
+trap 'rc=$?; trap - EXIT; atexit; exit ${rc}' INT PIPE TERM
 
 # Usage
 usage() {
     cat << _EOF_
-$(basename ${0}) ${VERSION}
+$(basename "$0") ${VERSION}
 
 Usage:
-    $(basename ${0}) -n SET_NAME [-i PATH]... [-u URL]... [-e EXCLUDE_PATH]... [OPTIONS...]
+    $(basename "$0") -n SET_NAME [-i PATH]... [-u URL]... [-e EXCLUDE_PATH]... [OPTIONS...]
 
 Options:
     -n IP set name of ipset
@@ -48,7 +49,7 @@ Options:
     -u include IP set from url
     -e exclude IP set file path
     -d state directory (default: /var/lib/ipset-fast-update)
-    -f fource update
+    -f force update
     -r alert threshold ratio (default: 80)
         If the threshold is exceeded, the list will not be updated without the -f option.
     -t temporary mode
@@ -60,14 +61,14 @@ Options:
     https://github.com/firehol/iprange
 
 EXAMPLES
-    $(basename ${0}) -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
+    $(basename "$0") -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 
-    $(basename ${0}) -n ALLOW_LIST_FILE \\
+    $(basename "$0") -n ALLOW_LIST_FILE \\
         -i list1.txt \\
         -i list2.txt \\
         -i list3.txt
 
-    $(basename ${0}) -n DENY_LIST \\
+    $(basename "$0") -n DENY_LIST \\
         -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset \\
         -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level2.netset \\
         -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level3.netset \\
@@ -76,7 +77,7 @@ EXAMPLES
         -e exclude1.txt \\
         -e exclude2.txt
 
-    $(basename ${0}) -n DENY_MIX_LIST \\
+    $(basename "$0") -n DENY_MIX_LIST \\
         -i list1.txt \\
         -i list2.txt \\
         -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset
@@ -86,16 +87,16 @@ _EOF_
 
 atexit() {
     if [[ "${IS_VERBOSE}" -eq 0 ]]; then
-        if [[ ! -z "${LIST_FILE}" ]]; then
+        if [[ -n "${LIST_FILE}" ]]; then
             rm -f "${LIST_FILE}"
         fi
-        if [[ ! -z "${TMP_LIST_FILE}" ]]; then
+        if [[ -n "${TMP_LIST_FILE}" ]]; then
             rm -f "${TMP_LIST_FILE}"
         fi
-        if [[ ! -z "${TMP_LIST_CURRENT_FILE}" ]]; then
+        if [[ -n "${TMP_LIST_CURRENT_FILE}" ]]; then
             rm -f "${TMP_LIST_CURRENT_FILE}"
         fi
-        if [[ ! -z "${TMP_EXCLUDE_FILE}" ]]; then
+        if [[ -n "${TMP_EXCLUDE_FILE}" ]]; then
             rm -f "${TMP_EXCLUDE_FILE}"
         fi
     fi
@@ -104,10 +105,9 @@ atexit() {
 file_ipset() {
     local LIST_FILE="${1}"
     shift
-    local FILE_LIST="${@}"
 
     local FILE=""
-    for FILE in ${FILE_LIST}; do
+    for FILE in "$@"; do
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ${FILE}"
         cat "${FILE}" >> "${LIST_FILE}"
     done
@@ -116,26 +116,24 @@ file_ipset() {
 download_ipset() {
     local LIST_FILE="${1}"
     shift
-    local URL_LIST="${@}"
 
     local URL=""
-    for URL in ${URL_LIST}; do
+    for URL in "$@"; do
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ${URL}"
-        curl -s --retry 3 "${URL}" >> "${LIST_FILE}"
+        curl -fsSL --retry 3 "${URL}" >> "${LIST_FILE}"
     done
 }
 
 exclude_ipset() {
     local LIST_FILE="${1}"
     shift
-    local EXCLUDE_FILE_LIST="${@}"
 
     TMP_LIST_FILE="${LIST_FILE}.tmp"
     TMP_EXCLUDE_FILE="${LIST_FILE}-exclude.tmp"
-    echo > "${TMP_EXCLUDE_FILE}"
+    : > "${TMP_EXCLUDE_FILE}"
 
     local FILE=""
-    for FILE in ${EXCLUDE_FILE_LIST}; do
+    for FILE in "$@"; do
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- ${FILE}"
         grep -E -v "^$|^#" "${FILE}" >> "${TMP_EXCLUDE_FILE}" || true
     done
@@ -160,6 +158,36 @@ exclude_ipset() {
     fi
 }
 
+percent_to_scaled() {
+    local VALUE="${1}"
+    local INTEGER_PART=""
+    local FRACTION_PART=""
+    local FRACTION_PADDED=""
+
+    if [[ ! "${VALUE}" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+        echo "ERROR: invalid ratio (${VALUE})" >&2
+        exit 1
+    fi
+
+    # Convert a decimal percentage to a scaled integer for bash-only comparison.
+    INTEGER_PART="${VALUE%%.*}"
+    if [[ "${VALUE}" == *.* ]]; then
+        FRACTION_PART="${VALUE#*.}"
+    fi
+    FRACTION_PADDED="${FRACTION_PART}00000"
+    FRACTION_PADDED="${FRACTION_PADDED:0:5}"
+
+    echo $((10#${INTEGER_PART} * PERCENT_SCALE + 10#${FRACTION_PADDED}))
+}
+
+format_scaled_percent() {
+    local SCALED_PERCENT="${1}"
+    local DISPLAY_SCALED=$(((SCALED_PERCENT + 500) / 1000))
+
+    # Format a scaled integer percentage as a value with two decimal places.
+    printf "%d.%02d" $((DISPLAY_SCALED / 100)) $((DISPLAY_SCALED % 100))
+}
+
 diff_ratio() {
     local SET_NAME="${1}"
     local LIST_CURRENT_FILE="${2}"
@@ -169,20 +197,23 @@ diff_ratio() {
     TMP_LIST_FILE="${LIST_FILE}.tmp"
 
     set +e
-    cat "${LIST_CURRENT_FILE}" | grep -E -v "^#|^$" > "${TMP_LIST_CURRENT_FILE}"
-    cat "${LIST_FILE}" | grep -E -v "^#|^$" > "${TMP_LIST_FILE}"
+    grep -E -v "^#|^$" "${LIST_CURRENT_FILE}" > "${TMP_LIST_CURRENT_FILE}"
+    grep -E -v "^#|^$" "${LIST_FILE}" > "${TMP_LIST_FILE}"
 
-    local CURRENT_COUNT=$(cat "${TMP_LIST_CURRENT_FILE}" | wc -l)
-    local DIFF_COUNT=$(diff "${TMP_LIST_CURRENT_FILE}" "${TMP_LIST_FILE}" | grep -E "<|>" | wc -l)
+    local CURRENT_COUNT
+    local DIFF_COUNT
+    CURRENT_COUNT=$(wc -l < "${TMP_LIST_CURRENT_FILE}")
+    DIFF_COUNT=$(diff "${TMP_LIST_CURRENT_FILE}" "${TMP_LIST_FILE}" | grep -E "<|>" | wc -l)
     set -e
 
     if [[ "${CURRENT_COUNT}" -eq 0 ]]; then
         echo "- ${SET_NAME}: Changes: new (${DIFF_COUNT} / ${CURRENT_COUNT})"
         IS_FORCE="1"
     else
-        local DIFF_RATIO=$(echo "scale=5; ${DIFF_COUNT} / ${CURRENT_COUNT} * 100" | bc)
+        # Calculate the percentage with bash integer arithmetic only.
+        DIFF_RATIO=$((DIFF_COUNT * 100 * PERCENT_SCALE / CURRENT_COUNT))
         if [[ "${DIFF_RATIO}" != "0" ]] || [[ "${IS_VERBOSE}" -eq 1 ]]; then
-            echo "- ${SET_NAME}: Changes: $(printf "%.2f" ${DIFF_RATIO}) % (${DIFF_COUNT} / ${CURRENT_COUNT})"
+            echo "- ${SET_NAME}: Changes: $(format_scaled_percent "${DIFF_RATIO}") % (${DIFF_COUNT} / ${CURRENT_COUNT})"
         fi
     fi
 }
@@ -196,7 +227,7 @@ optimize_ipset() {
         iprange --optimize "${LIST_FILE}" > "${TMP_LIST_FILE}"
     else
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "- optimize: sort, uniq (NOTICE: iprange is better. https://github.com/firehol/iprange)"
-        cat "${LIST_FILE}" | sort | uniq > "${TMP_LIST_FILE}"
+        sort -u "${LIST_FILE}" > "${TMP_LIST_FILE}"
     fi
 
     cat "${TMP_LIST_FILE}" > "${LIST_FILE}"
@@ -226,12 +257,12 @@ update_ipset() {
 
 # Main
 main() {
-     [[ $# -lt 1 ]] && usage && exit 1
+    [[ $# -lt 1 ]] && usage && exit 1
 
     local SET_NAME=""
     declare -a FILE_LIST=()
     declare -a URL_LIST=()
-    declare -a EXCLIDE_FILE_LIST=()
+    declare -a EXCLUDE_FILE_LIST=()
     while getopts n:i:u:e:d:fr:tvh OPT; do
         case "${OPT}" in
             "n" )
@@ -241,7 +272,7 @@ main() {
             "u" )
                 URL_LIST+=("${OPTARG}") ;;
             "e" )
-                EXCLIDE_FILE_LIST+=("${OPTARG}") ;;
+                EXCLUDE_FILE_LIST+=("${OPTARG}") ;;
             "d" )
                 STATE_DIR="${OPTARG}" ;;
             "f" )
@@ -264,8 +295,8 @@ main() {
 
     if [[ -z "${SET_NAME}" ]] || ( [[ "${#FILE_LIST[@]}" -eq 0 ]] && [[ "${#URL_LIST[@]}" -eq 0 ]] ); then
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# Required option not found"
-         usage
-         exit 1
+        usage
+        exit 1
     fi
 
     # Create state directory
@@ -274,17 +305,14 @@ main() {
     fi
 
     # If the IP set does not exist, set force mode
-    set +e
-    local IS_LOADED=$(ipset list -n -t "${SET_NAME}" 2>&1)
-    if [[ $? -ne 0 ]]; then
+    if ! ipset list -n -t "${SET_NAME}" > /dev/null 2>&1; then
         echo "The set '${SET_NAME}' does not exist. Run in force update mode(-f)."
         IS_FORCE="1"
     fi
-    set -e
 
     # IP list file
     LIST_FILE="${STATE_DIR}/${SET_NAME}"
-    echo > "${LIST_FILE}"
+    : > "${LIST_FILE}"
 
     # FILE_LIST: IP set file
     if [[ "${#FILE_LIST[@]}" -ne 0 ]]; then
@@ -292,7 +320,7 @@ main() {
         file_ipset "${LIST_FILE}" "${FILE_LIST[@]}"
 
         if [[ ! -f "${LIST_FILE}" ]]; then
-            echo "File failed: ${FILE}"
+            echo "File failed: ${LIST_FILE}"
             exit 1
         fi
     fi
@@ -303,15 +331,15 @@ main() {
         download_ipset "${LIST_FILE}" "${URL_LIST[@]}"
 
         if [[ ! -f "${LIST_FILE}" ]]; then
-            echo "Download failed: ${URL}"
+            echo "Download failed: ${LIST_FILE}"
             exit 1
         fi
     fi
 
-    # EXCLIDE_FILE_LIST: Exclude IP set file
-    if [[ "${#EXCLIDE_FILE_LIST[@]}" -ne 0 ]]; then
-        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# exclude ${LIST_FILE} (Files: ${#EXCLIDE_FILE_LIST[@]})"
-        exclude_ipset "${LIST_FILE}" "${EXCLIDE_FILE_LIST[@]}"
+    # EXCLUDE_FILE_LIST: Exclude IP set file
+    if [[ "${#EXCLUDE_FILE_LIST[@]}" -ne 0 ]]; then
+        [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# exclude ${LIST_FILE} (Files: ${#EXCLUDE_FILE_LIST[@]})"
+        exclude_ipset "${LIST_FILE}" "${EXCLUDE_FILE_LIST[@]}"
     fi
 
     # Optimize IP set
@@ -328,8 +356,10 @@ main() {
     diff_ratio "${SET_NAME}" "${LIST_CURRENT_FILE}" "${LIST_FILE}"
 
     if [[ "${IS_FORCE}" -ne 1 ]]; then
-        local IS_ALERT=$(echo "${ALERT_THRESHOLD_RATIO} <= ${DIFF_RATIO}" | bc)
-        if [[ ${IS_ALERT} -eq 1 ]]; then
+        # Compare percentages with bash integer arithmetic only.
+        local ALERT_THRESHOLD_RATIO_SCALED
+        ALERT_THRESHOLD_RATIO_SCALED=$(percent_to_scaled "${ALERT_THRESHOLD_RATIO}")
+        if [[ "${ALERT_THRESHOLD_RATIO_SCALED}" -le "${DIFF_RATIO}" ]]; then
             echo "ERROR: alert threshold over (${ALERT_THRESHOLD_RATIO})"
             echo "    Force update: $0 -f ..."
             exit 1
@@ -346,6 +376,7 @@ main() {
         if [[ "${IS_TEMPORARY}" -eq 0 ]]; then
             echo "# Save ipset configuration by using /usr/libexec/ipset/ipset.start-stop save"
             # Source ipset configuration
+            IPSET_SAVE_ON_STOP=""
             if [[ -f "${IPSET_CONFIG}" ]]; then
                 . "${IPSET_CONFIG}"
             fi
@@ -370,4 +401,8 @@ _EOF_
     cat "${LIST_FILE}" > "${LIST_CURRENT_FILE}"
 }
 
-[[ ${#BASH_SOURCE[@]} = 1 ]] && main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+else
+    true
+fi

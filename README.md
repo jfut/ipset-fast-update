@@ -19,7 +19,7 @@ Options:
     -u include IP set from url
     -e exclude IP set file path
     -d state directory (default: /var/lib/ipset-fast-update)
-    -f fource update
+    -f force update
     -r alert threshold ratio (default: 80)
         If the threshold is exceeded, the list will not be updated without the -f option.
     -t temporary mode
