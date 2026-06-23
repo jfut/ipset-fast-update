@@ -54,6 +54,7 @@ nfpms:
     maintainer: Jun Futagawa <jfut@integ.jp>
     license: MIT
     vendor: ipset-fast-update project
+    homepage: https://github.com/jfut/ipset-fast-update
     bindir: /usr/sbin
     section: utils
     formats:
@@ -62,6 +63,9 @@ nfpms:
       - rpm
       - termux.deb
       - archlinux
+    rpm:
+      signature:
+        key_file: '{{ with index .Env "GPG_KEY_PATH" }}{{ . }}{{ end }}'
     contents:
       - src: ipset-fast-update
         dst: /usr/sbin/ipset-fast-update
