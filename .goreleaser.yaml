@@ -60,6 +60,7 @@ nfpms:
       - apk
       - deb
       - rpm
+      - termux.deb
       - archlinux
     contents:
       - src: ipset-fast-update
