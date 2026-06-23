@@ -1,15 +1,13 @@
 #!/bin/bash
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: Copyright 2018-2026 Jun Futagawa (jfut)
 #
-# Fast update of IP set for ipset
+# ipset-fast-update is a fast updater for ipset IP sets
 #
 # Recommend:
-#   - RHEL/AlmaLinux/Rocky Linux: vi /etc/sysconfig/ipset-config
-#     IPSET_SAVE_ON_STOP="yes"
-#
-# Copyright (C) 2018-2026 Jun Futagawa (jfut)
-#
-# This software is released under the MIT License.
-# http://opensource.org/licenses/mit-license.php
+#   - RHEL/AlmaLinux/Rocky Linux
+#     vi /etc/sysconfig/ipset-config
+#       IPSET_SAVE_ON_STOP="yes"
 
 set -euo pipefail
 
@@ -33,15 +31,18 @@ TMP_LIST_CURRENT_FILE=""
 TMP_EXCLUDE_FILE=""
 
 trap atexit EXIT
-trap 'rc=$?; trap - EXIT; atexit; exit ${rc}' INT PIPE TERM
+trap on_signal INT PIPE TERM
 
 # Usage
 usage() {
+    local COMMAND_NAME
+    COMMAND_NAME="$(basename "${0}")"
+
     cat << _EOF_
-$(basename "$0") ${VERSION}
+${COMMAND_NAME} ${VERSION}
 
 Usage:
-    $(basename "$0") -n SET_NAME [-i PATH]... [-u URL]... [-e EXCLUDE_PATH]... [OPTIONS...]
+    ${COMMAND_NAME} -n SET_NAME [-i PATH]... [-u URL]... [-e EXCLUDE_PATH]... [OPTIONS...]
 
 Options:
     -n IP set name of ipset
@@ -62,14 +63,14 @@ Options:
     https://github.com/firehol/packages
 
 EXAMPLES
-    $(basename "$0") -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
+    ${COMMAND_NAME} -n ALLOW_LIST_JP -u https://ipv4.fetus.jp/jp.txt
 
-    $(basename "$0") -n ALLOW_LIST_FILE \\
+    ${COMMAND_NAME} -n ALLOW_LIST_FILE \\
         -i list1.txt \\
         -i list2.txt \\
         -i list3.txt
 
-    $(basename "$0") -n DENY_LIST \\
+    ${COMMAND_NAME} -n DENY_LIST \\
         -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset \\
         -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level2.netset \\
         -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level3.netset \\
@@ -78,7 +79,7 @@ EXAMPLES
         -e exclude1.txt \\
         -e exclude2.txt
 
-    $(basename "$0") -n DENY_MIX_LIST \\
+    ${COMMAND_NAME} -n DENY_MIX_LIST \\
         -i list1.txt \\
         -i list2.txt \\
         -u https://raw.githubusercontent.com/borestad/firehol-mirror/main/firehol_level1.netset
@@ -101,6 +102,15 @@ atexit() {
             rm -f "${TMP_EXCLUDE_FILE}"
         fi
     fi
+}
+
+on_signal() {
+    local RC=$?
+
+    # Run cleanup before exiting from an interrupted execution.
+    trap - EXIT
+    atexit
+    exit "${RC}"
 }
 
 file_ipset() {
@@ -146,7 +156,8 @@ exclude_ipset() {
         cat "${TMP_LIST_FILE}" > "${LIST_FILE}"
     else
         # Remove single IPs only from the generated list.
-        local EXCLUDE_IP_LIST=$(cat "${TMP_EXCLUDE_FILE}")
+        local EXCLUDE_IP_LIST
+        EXCLUDE_IP_LIST=$(cat "${TMP_EXCLUDE_FILE}")
         local IP=""
         for IP in ${EXCLUDE_IP_LIST}
         do
@@ -204,7 +215,7 @@ diff_ratio() {
     local CURRENT_COUNT
     local DIFF_COUNT
     CURRENT_COUNT=$(wc -l < "${TMP_LIST_CURRENT_FILE}")
-    DIFF_COUNT=$(diff "${TMP_LIST_CURRENT_FILE}" "${TMP_LIST_FILE}" | grep -E "<|>" | wc -l)
+    DIFF_COUNT=$(diff "${TMP_LIST_CURRENT_FILE}" "${TMP_LIST_FILE}" | grep -E -c "<|>")
     set -e
 
     if [[ "${CURRENT_COUNT}" -eq 0 ]]; then
@@ -294,7 +305,7 @@ main() {
     done
     shift $((OPTIND - 1))
 
-    if [[ -z "${SET_NAME}" ]] || ( [[ "${#FILE_LIST[@]}" -eq 0 ]] && [[ "${#URL_LIST[@]}" -eq 0 ]] ); then
+    if [[ -z "${SET_NAME}" ]] || { [[ "${#FILE_LIST[@]}" -eq 0 ]] && [[ "${#URL_LIST[@]}" -eq 0 ]]; }; then
         [[ "${IS_VERBOSE}" -eq 1 ]] && echo "# Required option not found"
         usage
         exit 1
@@ -379,6 +390,7 @@ main() {
             # Source ipset configuration
             IPSET_SAVE_ON_STOP=""
             if [[ -f "${IPSET_CONFIG}" ]]; then
+                # shellcheck source=/etc/sysconfig/ipset-config disable=SC1091
                 . "${IPSET_CONFIG}"
             fi
 
@@ -402,8 +414,4 @@ _EOF_
     cat "${LIST_FILE}" > "${LIST_CURRENT_FILE}"
 }
 
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-    main "$@"
-else
-    true
-fi
+[[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"
