@@ -8,7 +8,7 @@ ipset-fast-update is a fast updater for ipset IP sets.
 ## Usage
 
 ```bash
-ipset-fast-update 1.6.0
+ipset-fast-update 1.6.1
 
 Usage:
     ipset-fast-update -n SET_NAME [-i PATH]... [-u URL]... [-e EXCLUDE_PATH]... [OPTIONS...]
