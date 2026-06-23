@@ -1,28 +1,28 @@
 {
   "checksums": [
     {
-      "id": "github_release/github.com/casey/just/1.53.0/just-1.53.0-aarch64-apple-darwin.tar.gz",
-      "checksum": "27F1361F2E4FB5D733837F1A9F80F85C237E5A36C75EE14961E59141713AA4ED",
+      "id": "github_release/github.com/casey/just/1.54.0/just-1.54.0-aarch64-apple-darwin.tar.gz",
+      "checksum": "A776FC5015491F84580875BC6DAD3DE59FA4F47A309CCAC49D1287CB55F9B599",
       "algorithm": "sha256"
     },
     {
-      "id": "github_release/github.com/casey/just/1.53.0/just-1.53.0-aarch64-unknown-linux-musl.tar.gz",
-      "checksum": "F29D8E72380BC144465F632C7D59DA311205EEF2923D57511708B05B82F2E64F",
+      "id": "github_release/github.com/casey/just/1.54.0/just-1.54.0-aarch64-unknown-linux-musl.tar.gz",
+      "checksum": "2162ACCB54D087C6FBD165C1BAEDCCB0F93B4953AF7F00309B8F928016C49CAE",
       "algorithm": "sha256"
     },
     {
-      "id": "github_release/github.com/casey/just/1.53.0/just-1.53.0-x86_64-apple-darwin.tar.gz",
-      "checksum": "BC345A26D40AE4697CB6B2F2CA04CDF1FBDC8C50EBA1B40684C8BF3F98555D72",
+      "id": "github_release/github.com/casey/just/1.54.0/just-1.54.0-x86_64-apple-darwin.tar.gz",
+      "checksum": "3F1ADEFEF12BCDF99134A44BDE53B779E83726381E15DE92113CE4BF2A3CF61F",
       "algorithm": "sha256"
     },
     {
-      "id": "github_release/github.com/casey/just/1.53.0/just-1.53.0-x86_64-pc-windows-msvc.zip",
-      "checksum": "02308AF0C174D3E0286F6BFC2B020258A3E12CD0C52C1D16FAC8EF2C12DEA0AF",
+      "id": "github_release/github.com/casey/just/1.54.0/just-1.54.0-x86_64-pc-windows-msvc.zip",
+      "checksum": "860E21474E956EAA9879D62F68CC24530254EEFE14AC108EAF707C0DAF56A6D0",
       "algorithm": "sha256"
     },
     {
-      "id": "github_release/github.com/casey/just/1.53.0/just-1.53.0-x86_64-unknown-linux-musl.tar.gz",
-      "checksum": "7FEDEB22C7E14D9EF1551E8B793700866D80F409F9884B0E80EBB65C11D4874D",
+      "id": "github_release/github.com/casey/just/1.54.0/just-1.54.0-x86_64-unknown-linux-musl.tar.gz",
+      "checksum": "193E2B04BAC8FF3568FF81CF62F8C9DB08F8083E16665E28D400DD35BAC47FFD",
       "algorithm": "sha256"
     },
     {
@@ -51,8 +51,33 @@
       "algorithm": "sha256"
     },
     {
-      "id": "registries/github_content/github.com/aquaproj/aqua-registry/v4.526.0/registry.yaml",
-      "checksum": "E2BB546D74F7E8D5276F00F2BC342E0CA3D7AC34B7AA442058CBFDBE318346E8",
+      "id": "github_release/github.com/koalaman/shellcheck/v0.11.0/shellcheck-v0.11.0.darwin.aarch64.tar.xz",
+      "checksum": "56AFFDD8DE5527894DCA6DC3D7E0A99A873B0F004D7AABC30AE407D3F48B0A79",
+      "algorithm": "sha256"
+    },
+    {
+      "id": "github_release/github.com/koalaman/shellcheck/v0.11.0/shellcheck-v0.11.0.darwin.x86_64.tar.xz",
+      "checksum": "3C89DB4EDCAB7CF1C27BFF178882E0F6F27F7AFDF54E859FA041FCA10FEBE4C6",
+      "algorithm": "sha256"
+    },
+    {
+      "id": "github_release/github.com/koalaman/shellcheck/v0.11.0/shellcheck-v0.11.0.linux.aarch64.tar.xz",
+      "checksum": "12B331C1D2DB6B9EB13CFCA64306B1B157A86EB69DB83023E261EAA7E7C14588",
+      "algorithm": "sha256"
+    },
+    {
+      "id": "github_release/github.com/koalaman/shellcheck/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz",
+      "checksum": "8C3BE12B05D5C177A04C29E3C78CE89AC86F1595681CAB149B65B97C4E227198",
+      "algorithm": "sha256"
+    },
+    {
+      "id": "github_release/github.com/koalaman/shellcheck/v0.11.0/shellcheck-v0.11.0.zip",
+      "checksum": "8A4E35AB0B331C85D73567B12F2A444DF187F483E5079CEFFA6BDA1FAA2E740E",
+      "algorithm": "sha256"
+    },
+    {
+      "id": "registries/github_content/github.com/aquaproj/aqua-registry/v4.527.0/registry.yaml",
+      "checksum": "009195F9810259B038EC011E749654006F1D450966C411674E74A4E0D1021F8D",
       "algorithm": "sha256"
     }
   ]
