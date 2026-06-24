@@ -9,9 +9,9 @@ ipset-fast-update is a fast updater for ipset IP sets.
 
 Download a release package from [Releases](https://github.com/jfut/ipset-fast-update/releases), or use the RPM repository setup below on RHEL-compatible distributions.
 
-### Install RPM package with dnf-anyrepo
+### Install RPM package with dnf-plugin-anyrepo
 
-Install [dnf-anyrepo](https://github.com/jfut/dnf-plugin-anyrepo), import the RPM GPG key, add this repository, then install the package with `dnf`.
+Install [dnf-plugin-anyrepo](https://github.com/jfut/dnf-plugin-anyrepo), import the RPM GPG key, add this repository, then install the package with `dnf`.
 
 ```bash
 rpm --import https://raw.githubusercontent.com/jfut/ipset-fast-update/refs/heads/main/packaging/RPM-GPG-KEY-jfut-github
